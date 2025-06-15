@@ -34,10 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const storyIntro = "Agent, welkom bij de Dalton Divisie. De kwaadaardige organisatie 'SILENT' dreigt al het geluid uit de wereld te stelen met hun 'Mute'-technologie. Jouw missie, mocht je die accepteren, is om hun operaties te saboteren. Agent Echo zal je begeleiden. Veel succes.";
 
     const levels = [
-        // LEVEL 1: Theorie
+        // LEVEL 1: Theorie en berekening
         {
-            title: "Missie 1: De Tussenstof",
-            type: 'theory',
+            title: "Missie 1: De Tussenstof & Sonar Basis",
+            type: 'theory_and_minigame',
             questions: [
                  {
                     question: "Je zwemt onderwater en hoort de stem van een dolfijn diep in de zee. Door welke tussenstof verplaatst het geluid van de dolfijn zich naar jou toe?",
@@ -49,14 +49,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     options: ["Alleen water", "Alleen lucht", "Eerst water, dan lucht", "Eerst lucht, dan water"],
                     answer: "Eerst lucht, dan water"
                 }
-            ]
+            ],
+            minigame: {
+                title: "Analyse: Sonar Echo",
+                init: null, // Geen canvas nodig voor deze
+                description: "We hebben een SILENT-basis gedetecteerd op de zeebodem. De diepte is 2250 m en de geluidssnelheid in zeewater is 1500 m/s. Hint: tijd = afstand / snelheid. Denk eraan: het signaal gaat heen én terug!",
+                question: "Bereken de totale reistijd van ons sonarsignaal in seconden.",
+                answer: "3"
+            }
         },
         // LEVEL 2: Speelbare Sonar Minigame
         {
-            title: "Trainingsmissie: Sonar Operaties",
+            title: "Trainingsmissie: Actieve Sonar",
             type: 'minigame_only',
             init: initSonarGame,
-            description: "Agent, SILENT heeft 3 onderzeeërs in dit gebied verstopt. Beweeg je schip met de pijltjestoetsen (links/rechts) en lanceer een sonar-ping met de spatiebalk. Vind alle onderzeeërs voordat je pings op zijn!",
+            description: "Goed werk, agent. Nu je de theorie kent, is het tijd voor een praktijktest. Je krijgt de controle over ons nieuwe sonarschip. Beweeg met de pijltjestoetsen en gebruik de spatiebalk om te pingen. Lokaliseer de 3 test-drones van SILENT.",
         },
         // LEVEL 3: Frequentie
         {
@@ -178,9 +185,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let contentHTML = `
             <h3>${minigameData.title}</h3>
             <p>${minigameData.description}</p>
-            <canvas id="minigame-canvas" class="level-canvas" width="500" height="300"></canvas>
-            <p><strong>${minigameData.question}</strong></p>
         `;
+        
+        // Alleen canvas toevoegen als de init functie bestaat
+        if(minigameData.init) {
+             contentHTML += `<canvas id="minigame-canvas" class="level-canvas" width="500" height="300"></canvas>`;
+        }
+       
+        contentHTML += `<p><strong>${minigameData.question}</strong></p>`;
         
         container.innerHTML = contentHTML;
         
@@ -376,11 +388,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let keys = {};
-        window.addEventListener('keydown', (e) => keys[e.code] = true);
-        window.addEventListener('keyup', (e) => {
+        const keydownHandler = (e) => keys[e.code] = true;
+        const keyupHandler = (e) => {
             if (e.code === 'Space') firePing();
             delete keys[e.code];
-        });
+        };
+        window.addEventListener('keydown', keydownHandler);
+        window.addEventListener('keyup', keyupHandler);
 
         function firePing() {
             if (pingsLeft > 0) {
@@ -444,7 +458,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Update stats
-            statsEl.textContent = `Pings Over: ${pingsLeft} | Onderzeeërs Gevonden: ${subsFound} / ${totalSubs}`;
+            statsEl.textContent = `Pings Over: ${pingsLeft} | Drones Gevonden: ${subsFound} / ${totalSubs}`;
+        }
+
+        function cleanup() {
+            window.removeEventListener('keydown', keydownHandler);
+            window.removeEventListener('keyup', keyupHandler);
+            cancelAnimationFrame(animationFrameId);
         }
 
         function gameLoop() {
@@ -453,12 +473,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (subsFound === totalSubs) {
                 const points = pingsLeft * 50 + 200; // Bonus for leftover pings
-                onComplete(points, `Alle onderzeeërs gevonden! Missie geslaagd. +${points} punten.`, 'correct');
-                return; // Stop loop
+                cleanup();
+                onComplete(points, `Alle drones gevonden! Systeem gekalibreerd. +${points} punten.`, 'correct');
+                return; 
             }
             if (pingsLeft === 0 && pings.length === 0) {
-                 onComplete(0, 'Geen pings meer over. Missie gefaald.', 'incorrect');
-                 return; // Stop loop
+                 cleanup();
+                 onComplete(0, 'Kalibratie gefaald. Geen pings meer over.', 'incorrect');
+                 return;
             }
             
             animationFrameId = requestAnimationFrame(gameLoop);
