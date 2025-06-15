@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     radius: 10, 
                     speed: 3, 
                     maxRadius: width,
-                    hit: false
+                    hit: false // **NIEUW** Eigenschap om te zien of de ping iets geraakt heeft
                 };
                 pings.push(newPing);
                 echoInfoEl.textContent = "Sonar ping verstuurd...";
@@ -435,25 +435,33 @@ document.addEventListener('DOMContentLoaded', () => {
             pings.forEach((ping, p_index) => {
                 ping.radius += ping.speed;
                 
-                // Check collision with drones
-                drones.forEach((drone) => {
-                    if (!drone.found && checkCollision(ping, drone)) {
-                        drone.found = true;
-                        dronesFound++;
-                        ping.hit = true;
-                        echoInfoEl.textContent = "Echo: SILENT drone gelokaliseerd!";
+                // **AANGEPAST** We controleren alleen op een botsing als deze ping nog niks geraakt heeft
+                if (!ping.hit) {
+                    // Controleer eerst drones
+                    for (const drone of drones) {
+                        if (!drone.found && checkCollision(ping, drone)) {
+                            drone.found = true;
+                            dronesFound++;
+                            ping.hit = true; // Markeer de ping als 'geraakt'
+                            echoInfoEl.textContent = "Echo: SILENT drone gelokaliseerd!";
+                            break; // Stop met zoeken, we hebben iets gevonden
+                        }
                     }
-                });
 
-                // Check collision with rocks
-                rocks.forEach((rock) => {
-                    if (!rock.found && checkCollision(ping, rock)) {
-                        rock.found = true;
-                        ping.hit = true;
-                        echoInfoEl.textContent = "Echo: Rotsformatie gedetecteerd.";
+                    // Als we al een drone hebben geraakt, is het niet nodig om rotsen te controleren
+                    if (!ping.hit) {
+                        for (const rock of rocks) {
+                             if (!rock.found && checkCollision(ping, rock)) {
+                                rock.found = true;
+                                ping.hit = true; // Markeer de ping als 'geraakt'
+                                echoInfoEl.textContent = "Echo: Rotsformatie gedetecteerd.";
+                                break; // Stop met zoeken
+                            }
+                        }
                     }
-                });
+                }
 
+                // Verwijder de ping als deze te groot is
                 if (ping.radius > ping.maxRadius) {
                     if(!ping.hit) {
                         echoInfoEl.textContent = "Echo: Geen objecten gedetecteerd.";
