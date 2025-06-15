@@ -1,0 +1,208 @@
+/* --- Algemene Stijlen & Kleurenpalet --- */
+:root {
+    --primary-green: #006400; /* Dalton Hoofdgroen */
+    --secondary-dark-gray: #1E1E1E; /* Interface Donkergrijs */
+    --accent-lime-green: #32CD32; /* Actie & Hightech Groen */
+    --text-ui-white: #E0E0E0; /* Scherm Wit */
+    --font-family: 'Roboto Mono', monospace;
+}
+
+body {
+    background-color: var(--secondary-dark-gray);
+    color: var(--text-ui-white);
+    font-family: var(--font-family);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 900px;
+    border: 2px solid var(--accent-lime-green);
+    border-radius: 15px;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 20px rgba(50, 205, 50, 0.4);
+}
+
+header#game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--accent-lime-green);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.title {
+    color: var(--primary-green);
+    text-shadow: 0 0 5px var(--primary-green);
+    margin: 0;
+}
+
+#score-board {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9em;
+}
+
+/* --- Schermen --- */
+.screen {
+    display: none; /* Standaard verborgen */
+    flex-direction: column;
+    gap: 20px;
+}
+
+.screen.active {
+    display: flex; /* Actief scherm tonen */
+}
+
+/* --- Knoppen & Interactieve Elementen --- */
+.btn {
+    background-color: var(--accent-lime-green);
+    color: var(--secondary-dark-gray);
+    font-family: var(--font-family);
+    font-weight: bold;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease-in-out;
+    align-self: center; /* Knoppen centreren in hun container */
+}
+
+.btn:hover, .btn:focus {
+    background-color: var(--text-ui-white);
+    box-shadow: 0 0 15px var(--accent-lime-green);
+}
+
+.btn.hidden {
+    display: none;
+}
+
+input[type="text"] {
+    background-color: rgba(0,0,0,0.5);
+    border: 1px solid var(--accent-lime-green);
+    color: var(--text-ui-white);
+    padding: 10px;
+    border-radius: 5px;
+    font-family: var(--font-family);
+    text-align: center;
+}
+
+/* --- Vraag & Antwoord Stijlen --- */
+.question-container {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-green);
+}
+
+.options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.option {
+    background-color: rgba(50, 205, 50, 0.1);
+    border: 1px solid var(--accent-lime-green);
+    padding: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.option:hover {
+    background-color: rgba(50, 205, 50, 0.3);
+}
+
+.option.selected {
+    background-color: var(--accent-lime-green);
+    color: var(--secondary-dark-gray);
+    font-weight: bold;
+}
+
+.option.correct {
+    background-color: var(--primary-green) !important;
+    color: var(--text-ui-white) !important;
+}
+
+.option.wrong {
+    background-color: #8b0000 !important;
+    color: var(--text-ui-white) !important;
+}
+
+
+/* --- Feedback Berichten --- */
+.feedback-message {
+    text-align: center;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 5px;
+    visibility: hidden; /* Standaard verborgen */
+}
+
+.feedback-message.show {
+    visibility: visible;
+}
+
+.feedback-message.correct {
+    background-color: rgba(50, 205, 50, 0.3);
+    color: var(--accent-lime-green);
+}
+
+.feedback-message.incorrect {
+    background-color: rgba(139, 0, 0, 0.5);
+    color: #ff4d4d;
+}
+
+/* --- Canvas voor Oscilloscoop --- */
+canvas#oscilloscope {
+    background-color: #000;
+    border: 2px solid var(--accent-lime-green);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    align-self: center;
+}
+
+/* --- Drag and Drop --- */
+.drop-zone {
+    border: 2px dashed var(--accent-lime-green);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 10px;
+    min-height: 100px;
+    background-color: rgba(0,0,0,0.3);
+}
+.draggable {
+    background-color: var(--primary-green);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    cursor: grab;
+}
+.drop-zone.hover {
+    background-color: rgba(50, 205, 50, 0.2);
+}
+
+
+/* --- Highscore Lijst --- */
+#highscore-list {
+    list-style-type: decimal;
+    padding-left: 40px;
+}
+
+#highscore-list li {
+    padding: 5px 0;
+    font-size: 1.1em;
+}
