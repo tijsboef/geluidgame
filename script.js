@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: "Trainingsmissie: Actieve Sonar",
             type: 'minigame_only',
             init: initSonarGame,
-            description: "Goed werk, agent. Nu je de theorie kent, is het tijd voor een praktijktest. Je krijgt de controle over ons nieuwe sonarschip. Beweeg met de pijltjestoetsen en gebruik de spatiebalk om te pingen. Lokaliseer de 3 test-drones van SILENT.",
+            description: "Goed werk, agent. Nu je de theorie kent, is het tijd voor een praktijktest. SILENT drones verstoppen zich achter rotsformaties. Gebruik je sonar (spatiebalk) om de zeebodem in kaart te brengen en de 3 drones te vinden. Beweeg je schip met de pijltjestoetsen.",
         },
         // LEVEL 3: Frequentie
         {
@@ -187,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <p>${minigameData.description}</p>
         `;
         
-        // Alleen canvas toevoegen als de init functie bestaat
         if(minigameData.init) {
              contentHTML += `<canvas id="minigame-canvas" class="level-canvas" width="500" height="300"></canvas>`;
         }
@@ -224,7 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = `
             <p>${levelData.description}</p>
             <canvas id="minigame-canvas" class="level-canvas" width="800" height="500"></canvas>
-            <div id="game-stats" style="text-align:center; font-size: 1.2em; margin-top: 10px;"></div>
+            <div id="game-stats" style="display: flex; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; margin-top: 10px;">
+                <span id="ping-counter"></span>
+                <span id="drone-counter"></span>
+                <span id="echo-info" style="font-style: italic;"></span>
+            </div>
         `;
         return container;
     }
@@ -235,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(taskContainer) taskContainer.classList.add('completed');
         
         if (isCorrect) completedTasks++;
-        else completedTasks++; // Poging telt ook als voltooid
+        else completedTasks++;
         
         checkLevelCompletion();
     }
@@ -367,26 +370,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d');
         const width = canvas.width;
         const height = canvas.height;
-        const statsEl = document.getElementById('game-stats');
+        const pingCounterEl = document.getElementById('ping-counter');
+        const droneCounterEl = document.getElementById('drone-counter');
+        const echoInfoEl = document.getElementById('echo-info');
 
         let ship = { x: width / 2 - 40, y: 10, width: 80, height: 20, speed: 10 };
-        let subs = [];
+        let drones = [];
+        let rocks = [];
         let pings = [];
-        let pingsLeft = 5;
-        let subsFound = 0;
-        const totalSubs = 3;
+        let pingsLeft = 8;
+        let dronesFound = 0;
+        const totalDrones = 3;
 
-        // Create subs at random positions
-        for (let i = 0; i < totalSubs; i++) {
-            subs.push({
+        // Create obstacles
+        for(let i=0; i<5; i++) {
+             rocks.push({
+                x: Math.random() * (width - 100),
+                y: height - 150 - (Math.random() * 200),
+                width: 80 + Math.random() * 50,
+                height: 40 + Math.random() * 40,
+                found: false
+            });
+        }
+        // Create drones, ensuring they don't overlap with rocks
+        for (let i = 0; i < totalDrones; i++) {
+            drones.push({
                 x: Math.random() * (width - 60),
-                y: height - 40 - (Math.random() * 80),
+                y: height - 80 - (Math.random() * 100),
                 width: 60,
                 height: 15,
                 found: false
             });
         }
-
+        
         let keys = {};
         const keydownHandler = (e) => keys[e.code] = true;
         const keyupHandler = (e) => {
@@ -397,50 +413,79 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('keyup', keyupHandler);
 
         function firePing() {
-            if (pingsLeft > 0) {
+            if (pingsLeft > 0 && pings.length === 0) { // Only one ping at a time
                 pingsLeft--;
-                pings.push({ x: ship.x + ship.width / 2, y: ship.y + ship.height, radius: 10, speed: 3, maxRadius: width });
+                let newPing = { 
+                    x: ship.x + ship.width / 2, 
+                    y: ship.y + ship.height, 
+                    radius: 10, 
+                    speed: 3, 
+                    maxRadius: width,
+                    hit: false
+                };
+                pings.push(newPing);
+                echoInfoEl.textContent = "Sonar ping verstuurd...";
             }
         }
 
         function update() {
-            // Move ship
             if (keys['ArrowLeft'] && ship.x > 0) ship.x -= ship.speed;
             if (keys['ArrowRight'] && ship.x < width - ship.width) ship.x += ship.speed;
 
-            // Update pings and check for collision
             pings.forEach((ping, p_index) => {
                 ping.radius += ping.speed;
-                subs.forEach((sub) => {
-                    if (!sub.found) {
-                        // Collision check
-                        let distX = Math.abs(ping.x - sub.x - sub.width / 2);
-                        let distY = Math.abs(ping.y - sub.y - sub.height / 2);
-
-                        if (distX > (sub.width / 2 + ping.radius)) return;
-                        if (distY > (sub.height / 2 + ping.radius)) return;
-
-                        if (distX <= (sub.width / 2) || distY <= (sub.height / 2)) {
-                            sub.found = true;
-                            subsFound++;
-                        }
+                
+                // Check collision with drones
+                drones.forEach((drone) => {
+                    if (!drone.found && checkCollision(ping, drone)) {
+                        drone.found = true;
+                        dronesFound++;
+                        ping.hit = true;
+                        echoInfoEl.textContent = "Echo: SILENT drone gelokaliseerd!";
                     }
                 });
-                if (ping.radius > ping.maxRadius) pings.splice(p_index, 1);
+
+                // Check collision with rocks
+                rocks.forEach((rock) => {
+                    if (!rock.found && checkCollision(ping, rock)) {
+                        rock.found = true;
+                        ping.hit = true;
+                        echoInfoEl.textContent = "Echo: Rotsformatie gedetecteerd.";
+                    }
+                });
+
+                if (ping.radius > ping.maxRadius) {
+                    if(!ping.hit) {
+                        echoInfoEl.textContent = "Echo: Geen objecten gedetecteerd.";
+                    }
+                    pings.splice(p_index, 1);
+                }
             });
+        }
+        
+        function checkCollision(ping, object) {
+            let distX = Math.abs(ping.x - object.x - object.width / 2);
+            let distY = Math.abs(ping.y - object.y - object.height / 2);
+
+            if (distX > (object.width / 2 + ping.radius)) { return false; }
+            if (distY > (object.height / 2 + ping.radius)) { return false; }
+
+            if (distX <= (object.width / 2)) { return true; } 
+            if (distY <= (object.height / 2)) { return true; }
+
+            let dx = distX - object.width/2;
+            let dy = distY - object.height/2;
+            return (dx*dx + dy*dy <= (ping.radius*ping.radius));
         }
 
         function draw() {
-            // Draw sea
             ctx.fillStyle = '#001f3f';
             ctx.fillRect(0, 0, width, height);
 
-            // Draw ship
             ctx.fillStyle = '#E0E0E0';
             ctx.fillRect(ship.x, ship.y, ship.width, ship.height);
             ctx.fillRect(ship.x + 20, ship.y - 10, 40, 10);
 
-            // Draw pings
             pings.forEach(ping => {
                 ctx.strokeStyle = 'var(--accent-lime-green)';
                 ctx.lineWidth = 2;
@@ -449,16 +494,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.stroke();
             });
 
-            // Draw subs (if found)
-            subs.forEach(sub => {
-                if (sub.found) {
-                    ctx.fillStyle = '#c0c0c0';
-                    ctx.fillRect(sub.x, sub.y, sub.width, sub.height);
+            rocks.forEach(rock => {
+                if (rock.found) {
+                    ctx.fillStyle = '#5D4037'; // Dark brown
+                    ctx.fillRect(rock.x, rock.y, rock.width, rock.height);
+                }
+            });
+
+            drones.forEach(drone => {
+                if (drone.found) {
+                    ctx.fillStyle = '#c0c0c0'; // Silver
+                    ctx.fillRect(drone.x, drone.y, drone.width, drone.height);
                 }
             });
             
-            // Update stats
-            statsEl.textContent = `Pings Over: ${pingsLeft} | Drones Gevonden: ${subsFound} / ${totalSubs}`;
+            pingCounterEl.textContent = `Pings Over: ${pingsLeft}`;
+            droneCounterEl.textContent = `Drones Gevonden: ${dronesFound} / ${totalDrones}`;
         }
 
         function cleanup() {
@@ -471,8 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
             update();
             draw();
 
-            if (subsFound === totalSubs) {
-                const points = pingsLeft * 50 + 200; // Bonus for leftover pings
+            if (dronesFound === totalDrones) {
+                const points = pingsLeft * 50 + 200;
                 cleanup();
                 onComplete(points, `Alle drones gevonden! Systeem gekalibreerd. +${points} punten.`, 'correct');
                 return; 
@@ -485,7 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             animationFrameId = requestAnimationFrame(gameLoop);
         }
-
+        
+        echoInfoEl.textContent = "Wacht op commando...";
         gameLoop();
     }
     
