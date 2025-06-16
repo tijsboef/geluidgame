@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
          // Training 4
         {
             title: "Trainingsmissie 4: Gehoorbescherming", type: 'minigame_only', init: initHearingProtectionGame,
-            description: "Je infiltreert een luidruchtig SILENT-evenement. Ontwijk schadelijke geluidsgolven (rood) met de pijltjestoetsen (omhoog/omlaag). Rode golven kosten een leven, groene golven geven een leven. Begin met 3 levens. Overleef zo lang mogelijk!"
+            description: "Je infiltreert een luidruchtig SILENT-evenement. Ontwijk schadelijke geluiden (rode blokjes) met de pijltjestoetsen (omhoog/omlaag). Rode blokjes kosten een leven, blauwe bolletjes geven een leven. Begin met 3 levens. Overleef zo lang mogelijk!"
         }
     ];
     
