@@ -65,15 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
             minigame: {
                 title: "Analyse: Kraak de Code", init: initOscilloscopeMinigame,
                 description: "Een geanimeerd oscilloscoopbeeld toont 2 trillingen over 10 horizontale hokjes. De tijdbasis is 2 ms/div.",
-                question: "Bereken de frequentie (f) van deze toon in Hertz (Hz).",
+                intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:",
+                intermediateAnswer: 10,
+                question: "Bereken nu de frequentie (f) van deze toon in Hertz (Hz):",
                 answer: 100,
-                hint: "Eén trilling (T) is 5 hokjes lang (10 hokjes / 2 trillingen). De tijd per hokje is 2 ms. Dus T = 5 * 2 = 10 ms. De frequentie f = 1 / T. Vergeet niet ms om te rekenen naar s."
+                hint: "Eén trilling (T) is 5 hokjes lang (10 hokjes / 2 trillingen). De tijd per hokje is 2 ms. Dus T = 5 * 2 = 10 ms. De frequentie f = 1 / T. Vergeet niet ms om te rekenen naar s (10 ms = 0,01 s)."
             }
         },
         // Training 2
         {
             title: "Trainingsmissie 2: Frequentie Matchen", type: 'minigame_only', init: initFrequencyMatchGame,
-            description: "Agent, we onderscheppen een gecodeerd SILENT-signaal. Match de frequentie van jouw zender (de onderste golf) met het doel-signaal (de bovenste, groene golf). Gebruik de knoppen om je frequentie aan te passen. Voltooi 3 rondes."
+            description: "Agent, we onderscheppen gecodeerde SILENT-signalen. Voltooi 3 rondes door de signalen te matchen of te selecteren."
         },
         // Missie 3
         {
@@ -96,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Training 3
         {
             title: "Trainingsmissie 3: Stoorzenders Plaatsen", type: 'minigame_only', init: initJammerGame,
-            description: "We moeten een belangrijke boodschap versturen, maar SILENT luistert mee. Sleep onze 3 stoorzenders naar strategische locaties op de kaart om het signaal bij de SILENT-basis te verzwakken tot onder de 20 dB."
+            description: "We moeten een belangrijke boodschap versturen, maar SILENT luistert mee. Sleep onze 3 stoorzenders uit het depot (links) naar strategische locaties op de kaart om het signaal bij de SILENT-basis te verzwakken tot onder de 20 dB."
         },
         // Missie 4
         {
@@ -247,12 +249,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if(minigameData.init) {
              contentHTML += `<canvas id="minigame-canvas" class="level-canvas" width="500" height="300"></canvas>`;
         }
+        container.innerHTML = contentHTML;
+
+        // Container voor vragen en knoppen
+        const interactionContainer = document.createElement('div');
+        interactionContainer.className = "interaction-container";
         
+        // Tussenvraag (indien aanwezig)
+        if(minigameData.intermediateQuestion) {
+            const intermediateGroup = document.createElement('div');
+            intermediateGroup.innerHTML = `<p><strong>${minigameData.intermediateQuestion}</strong></p>`;
+            const intermediateInput = document.createElement('input');
+            intermediateInput.type = 'text';
+            intermediateInput.id = 'minigame-intermediate-input';
+            intermediateInput.setAttribute('placeholder', 'Antwoord 1...');
+            intermediateGroup.appendChild(intermediateInput);
+            interactionContainer.appendChild(intermediateGroup);
+        }
+
+        // Hoofdvraag (indien aanwezig)
         if (minigameData.question) {
-             contentHTML += `<p><strong>${minigameData.question}</strong></p>`;
+            const mainGroup = document.createElement('div');
+            mainGroup.innerHTML = `<p><strong>${minigameData.question}</strong></p>`;
+             const mainInput = document.createElement('input');
+            mainInput.type = 'text';
+            mainInput.id = 'minigame-input';
+            mainInput.setAttribute('placeholder', minigameData.intermediateQuestion ? 'Antwoord 2...' : 'Jouw antwoord...');
+            mainGroup.appendChild(mainInput);
+            interactionContainer.appendChild(mainGroup);
         }
         
-        container.innerHTML = contentHTML;
+        container.appendChild(interactionContainer);
+
 
         // Hint Knop
         if (minigameData.hint) {
@@ -269,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (minigameData.type === 'drag_drop') {
+            container.querySelector('.interaction-container')?.remove(); // Verwijder de standaard input velden
             const ddContainer = document.createElement('div');
             ddContainer.className = 'drag-drop-container';
             const itemsPool = document.createElement('div');
@@ -286,13 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 zones.forEach(zone => { zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('hover'); }); zone.addEventListener('dragleave', () => zone.classList.remove('hover')); zone.addEventListener('drop', e => { e.preventDefault(); const draggable = document.querySelector('.dragging'); zone.appendChild(draggable); zone.classList.remove('hover'); }); });
             }, 0);
         } else if (minigameData.options) {
+             container.querySelector('.interaction-container')?.remove();
              const optionsContainer = document.createElement('div');
             optionsContainer.className = 'options-container';
              minigameData.options.forEach(optionText => { const optionEl = document.createElement('div'); optionEl.className = 'option'; optionEl.textContent = optionText; optionEl.addEventListener('click', () => checkAnswer(optionEl, minigameData.answer, container)); optionsContainer.appendChild(optionEl); });
             container.appendChild(optionsContainer);
         } else {
-            const input = document.createElement('input'); input.type = 'text'; input.id = 'minigame-input'; input.setAttribute('placeholder', 'Jouw antwoord...'); container.appendChild(input);
-            const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Controleer Antwoord'; button.addEventListener('click', () => checkMinigameAnswer(input, minigameData.answer, container)); container.appendChild(button);
+            const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Controleer Antwoord'; button.addEventListener('click', () => checkAnalysisAnswer(container, minigameData)); container.appendChild(button);
         }
         
         if (typeof minigameData.init === 'function') { setTimeout(() => { const canvas = document.getElementById('minigame-canvas'); if(canvas) minigameData.init(canvas); }, 0); }
@@ -317,16 +346,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         container.appendChild(statsContainer);
 
-        // Voeg specifieke UI-elementen toe voor bepaalde games
         if(levelData.init === initFrequencyMatchGame) {
             const controls = document.createElement('div');
+            controls.id = 'freq-controls';
             controls.style.textAlign = 'center';
             controls.style.padding = '10px';
-            controls.innerHTML = `
-                <button id="freq-down-btn" class="btn">- Freq</button>
-                <button id="freq-up-btn" class="btn">+ Freq</button>
-            `;
-            container.appendChild(controls);
+            container.appendChild(controls); // Controls worden dynamisch gevuld door de game
         }
 
         return container;
@@ -379,14 +404,28 @@ document.addEventListener('DOMContentLoaded', () => {
         taskCompleted(taskContainer, points > 0);
     }
 
-    function checkMinigameAnswer(inputElement, correctAnswer, gameContainer) {
+    function checkAnalysisAnswer(gameContainer, minigameData) {
         if (gameContainer.classList.contains('completed')) return;
-        inputElement.disabled = true;
-        const userAnswerNorm = normalizeAnswer(inputElement.value), correctAnswerNorm = normalizeAnswer(correctAnswer);
-        const isCorrect = userAnswerNorm === correctAnswerNorm;
-        if (isCorrect) { showFeedback('Uitstekend werk, Agent! +250 punten', 'correct'); updateScore(250); inputElement.style.borderColor = 'var(--primary-green)'; } 
-        else { showFeedback(`Incorrect. Het juiste antwoord was ${correctAnswer}.`, 'incorrect'); inputElement.style.borderColor = '#8b0000'; }
-        taskCompleted(gameContainer, isCorrect);
+        let allCorrect = true;
+
+        const mainInput = gameContainer.querySelector('#minigame-input');
+        const mainUserAnswer = normalizeAnswer(mainInput.value);
+        const mainCorrectAnswer = normalizeAnswer(minigameData.answer);
+        if(mainUserAnswer !== mainCorrectAnswer) allCorrect = false;
+
+        if (minigameData.intermediateQuestion) {
+            const intermediateInput = gameContainer.querySelector('#minigame-intermediate-input');
+            const intermediateUserAnswer = normalizeAnswer(intermediateInput.value);
+            const intermediateCorrectAnswer = normalizeAnswer(minigameData.intermediateAnswer);
+            if(intermediateUserAnswer !== intermediateCorrectAnswer) allCorrect = false;
+        }
+
+        if (allCorrect) { showFeedback('Uitstekend werk, Agent! +250 punten', 'correct'); updateScore(250); } 
+        else { showFeedback(`Incorrect. De juiste antwoorden waren ${minigameData.intermediateAnswer ? minigameData.intermediateAnswer + ' ms en ' : ''}${minigameData.answer} Hz.`, 'incorrect'); }
+        
+        mainInput.disabled = true;
+        gameContainer.querySelector('#minigame-intermediate-input')?.setAttribute('disabled', true);
+        taskCompleted(gameContainer, allCorrect);
     }
     
     // --- Algemene Game Flow --- //
@@ -405,16 +444,8 @@ document.addEventListener('DOMContentLoaded', () => {
         taskCompleted(container, true);
     }
     
-    function checkLevelCompletion() {
-        if (completedTasks >= levelTasks) nextButton.classList.remove('hidden');
-    }
-
-    function nextLevel() {
-        currentLevelIndex++;
-        if (currentLevelIndex < levels.length) loadLevel(levels[currentLevelIndex]);
-        else endGame();
-    }
-
+    function checkLevelCompletion() { if (completedTasks >= levelTasks) nextButton.classList.remove('hidden'); }
+    function nextLevel() { currentLevelIndex++; if (currentLevelIndex < levels.length) loadLevel(levels[currentLevelIndex]); else endGame(); }
     function showFeedback(message, type) { feedbackElement.textContent = message; feedbackElement.className = `feedback-message ${type} show`; }
     function updateScore(points) { score += points; scoreDisplay.textContent = score; }
     
@@ -489,86 +520,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initAmplitudeComparison(parentElement) {
-        const canvas = document.createElement('canvas');
-        canvas.className = 'level-canvas';
-        canvas.width = 500; canvas.height = 300;
-        parentElement.insertBefore(canvas, parentElement.firstChild);
-
-        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
-        let offset = 0;
-
+        const canvas = document.createElement('canvas'); canvas.className = 'level-canvas'; canvas.width = 500; canvas.height = 300; parentElement.insertBefore(canvas, parentElement.firstChild);
+        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height; let offset = 0;
         function drawWave(label, yOffset, freq, amp, color) {
-            ctx.beginPath();
-            ctx.strokeStyle = color; ctx.lineWidth = 2;
-            const centerY = yOffset, amplitude = amp;
-            for(let x=0; x < width; x++) {
-                const angle = ((x + offset*freq) / (50/freq)) * 2 * Math.PI;
-                const y = centerY - Math.sin(angle) * amplitude;
-                if(x===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-            ctx.font = "20px Roboto Mono"; ctx.fillStyle = "white"; ctx.fillText(label, 10, yOffset);
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; const centerY = yOffset, amplitude = amp;
+            for(let x=0; x < width; x++) { const angle = ((x + offset*freq) / (50/freq)) * 2 * Math.PI; const y = centerY - Math.sin(angle) * amplitude; if(x===0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+            ctx.stroke(); ctx.font = "20px Roboto Mono"; ctx.fillStyle = "white"; ctx.fillText(label, 10, yOffset);
         }
-
         function animate() {
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height);
-            drawWave('P', height * 0.25, 1, 30, '#32CD32'); // Golf P: lage freq, lage amp
-            drawWave('Q', height * 0.75, 2, 50, '#32CD32'); // Golf Q: hoge freq, hoge amp
-            offset++;
-            animationFrameId = requestAnimationFrame(animate);
+            drawWave('P', height * 0.25, 1, 30, '#32CD32'); drawWave('Q', height * 0.75, 2, 50, '#32CD32');
+            offset++; animationFrameId = requestAnimationFrame(animate);
         }
         animate();
     }
     
     function initFrequencyMatchGame(canvas, onComplete) {
-        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
+        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height, divSize = width/20;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
-        const freqUpBtn = document.getElementById('freq-up-btn'), freqDownBtn = document.getElementById('freq-down-btn');
+        const controlsContainer = document.getElementById('freq-controls');
 
-        let round = 1, totalRounds = 3, score = 0;
-        let targetWave = {}, playerWave = {};
-
-        function setupRound() {
-            targetWave = { freq: 2 + Math.floor(Math.random() * 5), amp: 40, y: height * 0.25 };
-            playerWave = { freq: 1, amp: 40, y: height * 0.75 };
-            stat3.textContent = `Match de frequentie voor ronde ${round}`;
-        }
+        let round = 1, totalRounds = 3, score = 0, currentRoundType;
+        let targetWave = {}, playerWave = {}, clickWaves = [];
+        let clickHandler; // To remove event listener later
         
         function drawWave(wave, color) {
             ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath();
             const centerY = wave.y, amplitude = wave.amp;
-            for(let x=0; x < width; x++) {
-                const angle = (x / (100/wave.freq)) * 2 * Math.PI;
-                const yPos = centerY - Math.sin(angle) * amplitude;
-                if(x===0) ctx.moveTo(x, yPos); else ctx.lineTo(x, yPos);
-            }
+            for(let x=0; x < width; x++) { const angle = (x / (wave.w_len || 50)) * wave.freq * 2 * Math.PI; const yPos = centerY - Math.sin(angle) * amplitude; if(x===0) ctx.moveTo(x, yPos); else ctx.lineTo(x, yPos); }
             ctx.stroke();
         }
+        
+        function setupRound() {
+            controlsContainer.innerHTML = ''; // Maak controls leeg
+            currentRoundType = round === 2 ? 'click' : 'match'; // Ronde 2 is de klik-ronde
 
-        function checkMatch() {
-            if(playerWave.freq === targetWave.freq) {
-                score += 100;
-                round++;
-                if (round > totalRounds) {
-                    onComplete(score, "Alle signalen gematched!", 'correct');
-                } else {
-                    stat3.textContent = 'Correct! Volgende ronde...';
-                    setTimeout(setupRound, 1500);
-                }
+            if (currentRoundType === 'match') {
+                targetWave = { freq: 2 + Math.floor(Math.random() * 5), y: height * 0.25, amp: 60 };
+                playerWave = { freq: 1, y: height * 0.75, amp: 60 };
+                controlsContainer.innerHTML = `<button id="freq-down-btn" class="btn">- Freq</button> <button id="freq-up-btn" class="btn">+ Freq</button> <button id="confirm-freq-btn" class="btn">Bevestig</button>`;
+                document.getElementById('freq-down-btn').onclick = () => { if(playerWave.freq > 1) playerWave.freq--; };
+                document.getElementById('freq-up-btn').onclick = () => { if(playerWave.freq < 10) playerWave.freq++; };
+                document.getElementById('confirm-freq-btn').onclick = checkMatch;
+            } else { // 'click' round
+                stat3.textContent = 'Klik op de golf met een frequentie van 4 Hz.';
+                clickWaves = [
+                    { freq: 2, y: height * 0.2, amp: 50, w_len: 100, isTarget: false },
+                    { freq: 4, y: height * 0.5, amp: 50, w_len: 100, isTarget: true },
+                    { freq: 8, y: height * 0.8, amp: 50, w_len: 100, isTarget: false }
+                ];
+                clickHandler = (e) => {
+                    const rect = canvas.getBoundingClientRect(), x = e.clientX-rect.left, y = e.clientY-rect.top;
+                    clickWaves.forEach(wave => { if (y > wave.y - wave.amp && y < wave.y + wave.amp) checkClick(wave.isTarget); });
+                };
+                canvas.addEventListener('click', clickHandler);
             }
         }
-        
-        const downHandler = () => { if(playerWave.freq > 1) playerWave.freq--; checkMatch(); };
-        const upHandler = () => { if(playerWave.freq < 10) playerWave.freq++; checkMatch(); };
-        freqDownBtn.onclick = downHandler;
-        freqUpBtn.onclick = upHandler;
+
+        function nextRound() {
+            round++;
+            if (round > totalRounds) { onComplete(score, "Alle signalen verwerkt!", 'correct'); } 
+            else { stat3.textContent = 'Correct! Volgende ronde...'; setTimeout(setupRound, 1500); }
+        }
+
+        function checkMatch() { if(playerWave.freq === targetWave.freq) { score += 100; nextRound(); } else { stat3.textContent = 'Frequenties komen niet overeen. Probeer opnieuw.'; } }
+        function checkClick(isCorrect) { canvas.removeEventListener('click', clickHandler); if(isCorrect) { score += 150; nextRound(); } else { stat3.textContent = 'Fout signaal geselecteerd.'; setTimeout(nextRound, 1500); } }
 
         function gameLoop() {
-            ctx.fillStyle = '#001f3f'; ctx.fillRect(0, 0, width, height);
-            drawWave(targetWave, 'var(--accent-lime-green)');
-            drawWave(playerWave, '#ff4d4d');
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
+            if(currentRoundType === 'match') {
+                drawWave(targetWave, 'var(--accent-lime-green)'); drawWave(playerWave, '#ff4d4d');
+                stat2.textContent = `Jouw Freq: ${playerWave.freq}`; stat3.textContent = `Doel Freq: ${targetWave.freq}`;
+            } else {
+                clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)'));
+                stat2.textContent = '';
+            }
             stat1.textContent = `Ronde: ${round}/${totalRounds}`;
-            stat2.textContent = `Player Freq: ${playerWave.freq}`;
             if (round <= totalRounds) animationFrameId = requestAnimationFrame(gameLoop);
         }
         setupRound(); gameLoop();
@@ -577,55 +604,63 @@ document.addEventListener('DOMContentLoaded', () => {
     function initJammerGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
+        const poolWidth = 150;
         
-        let hq = {x: 50, y: height/2, radius: 20};
-        let silentBase = {x: width - 50, y: height/2, radius: 20, signal: 100};
-        let jammers = [ {x: 150, y: 100, radius: 15}, {x: 150, y: height/2}, {x: 150, y: height - 100}];
-        let draggingJammer = null;
+        let hq = {x: width - 50, y: height/2, radius: 20};
+        let silentBase = {x: 50 + poolWidth, y: height/2, radius: 20, signal: 100};
+        let jammers = [
+            {id: 0, x: 75, y: 100, radius: 25, inPool: true}, 
+            {id: 1, x: 75, y: height/2, radius: 25, inPool: true}, 
+            {id: 2, x: 75, y: height - 100, radius: 25, inPool: true}
+        ];
+        let draggingJammerIdx = null;
 
-        function distance(p1, p2) { return Math.sqrt(Math.pow(p1.x-p2.x, 2) + Math.pow(p1.y-p2.y, 2)); }
-
+        function distance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
         function calculateSignal() {
             let totalReduction = 0;
-            jammers.forEach(jammer => {
-                let distToBase = distance(jammer, silentBase);
-                if (distToBase < 1) distToBase = 1;
-                totalReduction += 15000 / distToBase;
-            });
+            jammers.forEach(jammer => { if(!jammer.inPool) { let dist = distance(jammer, hq); totalReduction += 40000 / (dist < 1 ? 1 : dist); }});
             silentBase.signal = Math.max(0, 100 - totalReduction);
         }
 
-        function mousedown(e) {
-            const rect = canvas.getBoundingClientRect(), mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
-            jammers.forEach((jammer, i) => { if(distance({x:mouseX, y:mouseY}, jammer) < jammer.radius) draggingJammer = i; });
-        }
-        function mouseup() { draggingJammer = null; }
-        function mousemove(e) {
-            if(draggingJammer === null) return;
-            const rect = canvas.getBoundingClientRect(), mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
-            jammers[draggingJammer].x = mouseX; jammers[draggingJammer].y = mouseY;
+        const mousedown = (e) => { const rect = canvas.getBoundingClientRect(), mouseX = e.clientX-rect.left, mouseY = e.clientY-rect.top; jammers.forEach((jammer, i) => { if (distance({x:mouseX,y:mouseY}, jammer) < jammer.radius) draggingJammerIdx = i; }); };
+        const mouseup = () => { if(draggingJammerIdx !== null && jammers[draggingJammerIdx].x < poolWidth) jammers[draggingJammerIdx].inPool = true; draggingJammerIdx = null; };
+        const mousemove = (e) => {
+            if(draggingJammerIdx === null) return;
+            const rect = canvas.getBoundingClientRect(), mouseX = e.clientX-rect.left, mouseY = e.clientY-rect.top;
+            jammers[draggingJammerIdx].x = mouseX; jammers[draggingJammerIdx].y = mouseY;
+            jammers[draggingJammerIdx].inPool = false;
             calculateSignal();
+        };
+        canvas.addEventListener('mousedown', mousedown); window.addEventListener('mouseup', mouseup); canvas.addEventListener('mousemove', mousemove);
+
+        function drawMap() {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"; ctx.lineWidth = 1;
+            for(let i=0; i<10; i++) { ctx.beginPath(); ctx.moveTo(poolWidth + Math.random()* (width-poolWidth), 0); ctx.lineTo(poolWidth + Math.random()* (width-poolWidth), height); ctx.stroke(); }
+            for(let i=0; i<6; i++) { ctx.beginPath(); ctx.moveTo(poolWidth, Math.random()*height); ctx.lineTo(width, Math.random()*height); ctx.stroke(); }
         }
-        canvas.addEventListener('mousedown', mousedown); canvas.addEventListener('mouseup', mouseup); canvas.addEventListener('mousemove', mousemove);
+        function draw() {
+            ctx.fillStyle = '#013220'; ctx.fillRect(0, 0, width, height); drawMap();
+            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(0, 0, poolWidth, height);
+            ctx.fillStyle = "white"; ctx.font="16px Roboto Mono"; ctx.fillText("DEPOT", 45, 30);
 
-        function gameLoop() {
-            ctx.fillStyle = '#013220'; ctx.fillRect(0, 0, width, height); // Dark green map
-            ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(hq.x, hq.y, hq.radius, 0, 2*Math.PI); ctx.fill();
-            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(silentBase.x, silentBase.y, silentBase.radius, 0, 2*Math.PI); ctx.fill();
-            jammers.forEach(jammer => { ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(jammer.x, jammer.y, jammer.radius, 0, 2*Math.PI); ctx.fill(); });
+            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(hq.x, hq.y, hq.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("HQ", hq.x-10, hq.y+5);
+            ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(silentBase.x, silentBase.y, silentBase.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("Base", silentBase.x-15, silentBase.y+5);
             
-            stat1.textContent = "Dalton HQ"; stat2.textContent = "SILENT Base";
-            stat3.textContent = `Signaalsterkte: ${silentBase.signal.toFixed(1)} dB`;
-            if (silentBase.signal < 20) {
-                 stat3.style.color = 'var(--accent-lime-green)';
-            } else {
-                 stat3.style.color = 'white';
-            }
-
-            if(draggingJammer === null && silentBase.signal < 20) {
+            jammers.forEach(jammer => { 
+                ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(jammer.x, jammer.y, jammer.radius, 0, 2*Math.PI); ctx.fill(); 
+                ctx.fillStyle = 'black'; ctx.font="bold 20px Roboto Mono"; ctx.fillText("Z", jammer.x-6, jammer.y+7);
+            });
+            stat1.textContent = "Dalton HQ (Doelwit)"; stat2.textContent = "SILENT Base (Bron)";
+            stat3.textContent = `Signaalsterkte bij HQ: ${silentBase.signal.toFixed(1)} dB`;
+            stat3.style.color = silentBase.signal < 20 ? 'var(--accent-lime-green)' : 'white';
+        }
+        function cleanup() { canvas.removeEventListener('mousedown', mousedown); window.removeEventListener('mouseup', mouseup); canvas.removeEventListener('mousemove', mousemove); cancelAnimationFrame(animationFrameId); }
+        function gameLoop() {
+            draw();
+            if (draggingJammerIdx === null && silentBase.signal < 20 && !jammers.some(j => j.inPool)) {
                 let score = Math.max(0, (20 - silentBase.signal) * 20);
+                cleanup();
                 onComplete(score, `Missie geslaagd! Signaal verzwakt. +${score.toFixed(0)} punten`, 'correct');
-                canvas.removeEventListener('mousedown', mousedown); canvas.removeEventListener('mouseup', mouseup); canvas.removeEventListener('mousemove', mousemove);
             } else {
                 animationFrameId = requestAnimationFrame(gameLoop);
             }
@@ -637,30 +672,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         let player = {x: 50, y: height/2, width: 20, height: 40, speed: 10};
-        let objects = [], damage = 0, maxDamage = 100, itemsCollected = 0, spawnTimer = 0;
+        let objects = [], damage = 0, maxDamage = 100, itemsCollected = 0, spawnTimer = 0, gameTime = 20, timerId;
         
         let keys = {}, keydownHandler = (e) => keys[e.code] = true, keyupHandler = (e) => delete keys[e.code];
         window.addEventListener('keydown', keydownHandler); window.addEventListener('keyup', keyupHandler);
 
         function update() {
-            if(keys['ArrowUp'] && player.y > 0) player.y -= player.speed;
-            if(keys['ArrowDown'] && player.y < height - player.height) player.y += player.speed;
-
+            if(keys['ArrowUp'] && player.y > 0) player.y -= player.speed; if(keys['ArrowDown'] && player.y < height - player.height) player.y += player.speed;
             spawnTimer++;
-            if(spawnTimer > 40) { // Spawn new object
-                spawnTimer = 0;
-                let isHarmful = Math.random() > 0.4;
-                objects.push({
-                    x: width, y: Math.random() * (height - 30),
-                    width: 30, height: 30, speed: 5 + Math.random() * 5,
-                    harmful: isHarmful
-                });
-            }
-
+            if(spawnTimer > 30) { spawnTimer = 0; objects.push({ x: width, y: Math.random()*(height-30), width: 30, height: 30, speed: 5 + Math.random()*5, harmful: Math.random() > 0.4 }); }
             objects.forEach((obj, index) => {
-                obj.x -= obj.speed;
-                if(obj.x < -obj.width) objects.splice(index, 1);
-                // Collision
+                obj.x -= obj.speed; if(obj.x < -obj.width) objects.splice(index, 1);
                 if(player.x < obj.x + obj.width && player.x + player.width > obj.x && player.y < obj.y + obj.height && player.y + player.height > obj.y) {
                     if(obj.harmful) damage += 25; else { damage = Math.max(0, damage - 20); itemsCollected++; }
                     objects.splice(index, 1);
@@ -668,29 +690,19 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         function draw() {
-            ctx.fillStyle = '#1E1E1E'; ctx.fillRect(0, 0, width, height);
-            ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
-            objects.forEach(obj => {
-                ctx.fillStyle = obj.harmful ? '#ff4d4d' : 'var(--accent-lime-green)';
-                ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-            });
-            stat1.textContent = `Gehoorschade: ${damage}%`;
-            stat2.textContent = `Bescherming: ${itemsCollected}`;
-            stat3.textContent = '';
-            // Damage bar
-            ctx.fillStyle = 'grey'; ctx.fillRect(width/2-100, 10, 200, 20);
-            ctx.fillStyle = 'red'; ctx.fillRect(width/2-100, 10, damage*2, 20);
+            ctx.fillStyle = '#1E1E1E'; ctx.fillRect(0, 0, width, height); ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
+            objects.forEach(obj => { ctx.fillStyle = obj.harmful ? '#ff4d4d' : 'var(--accent-lime-green)'; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); });
+            stat1.textContent = `Gehoorschade: ${damage}%`; stat2.textContent = `Bescherming: ${itemsCollected}`; stat3.textContent = `Tijd over: ${gameTime}s`;
+            ctx.fillStyle = 'grey'; ctx.fillRect(width/2-100, 10, 200, 20); ctx.fillStyle = 'red'; ctx.fillRect(width/2-100, 10, damage*2, 20);
         }
-        function cleanup() { window.removeEventListener('keydown', keydownHandler); window.removeEventListener('keyup', keyupHandler); cancelAnimationFrame(animationFrameId); }
+        function cleanup() { window.removeEventListener('keydown', keydownHandler); window.removeEventListener('keyup', keyupHandler); cancelAnimationFrame(animationFrameId); clearInterval(timerId); }
         function gameLoop() {
             update(); draw();
-            if(damage >= maxDamage) {
-                cleanup();
-                onComplete(itemsCollected * 25, 'Gehoorschade kritiek! Missie afgebroken.', 'incorrect');
-            } else {
-                animationFrameId = requestAnimationFrame(gameLoop);
-            }
+            if(damage >= maxDamage) { cleanup(); onComplete(itemsCollected * 25, 'Gehoorschade kritiek! Missie afgebroken.', 'incorrect'); }
+             else if (gameTime <= 0) { cleanup(); onComplete(itemsCollected * 50 - damage * 2, "Tijd is om! Je bent veilig ontsnapt.", "correct"); }
+            else { animationFrameId = requestAnimationFrame(gameLoop); }
         }
+        timerId = setInterval(()=> gameTime--, 1000);
         gameLoop();
     }
 
