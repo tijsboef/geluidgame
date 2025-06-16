@@ -350,59 +350,81 @@ document.addEventListener('DOMContentLoaded', () => {
     function createStandaloneMinigameElement(levelData) {
         const container = document.createElement('div');
         container.className = 'question-container task-container';
-        
-        const gameWrapper = document.createElement('div');
-        gameWrapper.className = 'game-wrapper';
-        gameWrapper.style.display = 'flex';
-        gameWrapper.style.gap = '20px';
-        gameWrapper.style.alignItems = 'flex-start';
-        // Cruciaal voor positionering van kinderen
-        gameWrapper.style.position = 'relative';
 
-        const canvasWrapper = document.createElement('div');
-        canvasWrapper.style.flexGrow = '1';
-        canvasWrapper.innerHTML = `<p>${levelData.description}</p><canvas id="minigame-canvas" class="level-canvas" width="800" height="500"></canvas>`;
+        // Main wrapper voor de hele game-interface
+        const gameInterfaceWrapper = document.createElement('div');
+
+        const descriptionElement = document.createElement('p');
+        descriptionElement.textContent = levelData.description;
+        gameInterfaceWrapper.appendChild(descriptionElement);
+
+        // Wrapper voor canvas en eventuele zijknoppen
+        const gameAreaWrapper = document.createElement('div');
+        gameAreaWrapper.className = 'game-area-wrapper';
+        gameAreaWrapper.style.display = 'flex';
+        gameAreaWrapper.style.alignItems = 'center'; // Center vertically
+        gameAreaWrapper.style.gap = '10px';
+        gameAreaWrapper.style.justifyContent = 'center';
         
+        const canvasContainer = document.createElement('div');
+        canvasContainer.id = 'canvas-container';
+        canvasContainer.style.position = 'relative'; // Essentieel voor absolute positionering van de knoppen
+        
+        const canvas = document.createElement('canvas');
+        canvas.id = 'minigame-canvas';
+        canvas.className = 'level-canvas';
+        canvas.width = 800;
+        canvas.height = 500;
+        canvas.style.maxWidth = '100%';
+        canvasContainer.appendChild(canvas);
+
+        // Voeg de canvas container toe aan de game area
+        gameAreaWrapper.appendChild(canvasContainer);
+        gameInterfaceWrapper.appendChild(gameAreaWrapper);
+        
+        // Bottom sectie voor stats en info
+        const bottomSection = document.createElement('div');
+        bottomSection.style.display = 'flex';
+        bottomSection.style.justifyContent = 'space-between';
+        bottomSection.style.alignItems = 'flex-start';
+        bottomSection.style.marginTop = '15px';
+        bottomSection.style.flexWrap = 'wrap';
+        bottomSection.style.gap = '15px';
+
+
         const statsContainer = document.createElement('div');
         statsContainer.id = 'game-stats';
-        statsContainer.style.display = 'flex';
-        statsContainer.style.flexDirection = 'column'; 
-        statsContainer.style.justifyContent = 'space-between';
         statsContainer.style.padding = '10px';
         statsContainer.style.background = 'rgba(0,0,0,0.3)';
         statsContainer.style.borderRadius = '5px';
-        statsContainer.style.marginTop = '10px';
         statsContainer.innerHTML = `<span id="stat1"></span><span id="stat2"></span><span id="stat3" style="font-style: italic;"></span>`;
-        
-        canvasWrapper.appendChild(statsContainer);
-        gameWrapper.appendChild(canvasWrapper);
-        container.appendChild(gameWrapper);
+        bottomSection.appendChild(statsContainer);
 
         if(levelData.init === initFrequencyMatchGame) {
             const infoPanel = document.createElement('div');
             infoPanel.id = 'info-panel';
-            // Aangepaste styling voor nieuwe positie
-            infoPanel.style.position = 'absolute';
-            infoPanel.style.bottom = '10px';
-            infoPanel.style.right = '0px';
-            infoPanel.style.width = '180px';
+            infoPanel.style.minWidth = '180px';
             infoPanel.style.padding = '10px';
             infoPanel.style.border = '1px solid var(--accent-lime-green)';
             infoPanel.style.borderRadius = '8px';
             infoPanel.style.backgroundColor = 'rgba(0,20,0,0.5)';
             infoPanel.innerHTML = '<h4>SYSTEM INFO</h4><div id="info-panel-content"></div>';
-            // Voeg toe aan de wrapper zodat positionering werkt
-            gameWrapper.appendChild(infoPanel);
-
-            const controls = document.createElement('div');
-            controls.id = 'freq-controls';
-            controls.style.textAlign = 'center';
-            controls.style.padding = '10px';
-            container.appendChild(controls); 
+            bottomSection.appendChild(infoPanel);
         }
+        
+        gameInterfaceWrapper.appendChild(bottomSection);
 
+        // Controls gaan onderaan
+        const controls = document.createElement('div');
+        controls.id = 'freq-controls';
+        controls.style.textAlign = 'center';
+        controls.style.paddingTop = '10px';
+        gameInterfaceWrapper.appendChild(controls);
+
+        container.appendChild(gameInterfaceWrapper);
         return container;
     }
+
 
     // --- Controleer antwoord functies --- //
 
@@ -690,6 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const infoPanelContent = document.getElementById('info-panel-content');
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         const controlsContainer = document.getElementById('freq-controls');
+        const canvasContainer = document.getElementById('canvas-container');
 
         let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false;
         let targetWave = {}, playerWave = {}, clickWaves = [];
@@ -708,18 +731,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         function setupRound() {
-            const gameWrapper = canvas.closest('.game-wrapper');
-            if (gameWrapper) {
-                gameWrapper.querySelectorAll('.select-wave-btn').forEach(btn => btn.remove());
+            // Verwijder oude knoppen
+            if (canvasContainer) {
+                canvasContainer.querySelectorAll('.select-wave-btn').forEach(btn => btn.remove());
             }
 
             if (round > totalRounds) return;
             
             controlsContainer.innerHTML = '';
-            infoPanelContent.innerHTML = '';
+            if (infoPanelContent) infoPanelContent.innerHTML = '';
             const data = roundData[round-1];
             currentRoundType = data.type;
-            infoPanelContent.innerHTML = `<p>Timebase: <br><span style="color:var(--accent-lime-green);">${data.timebase} ms/div</span></p>`;
+            if (infoPanelContent) infoPanelContent.innerHTML = `<p>Timebase: <br><span style="color:var(--accent-lime-green);">${data.timebase} ms/div</span></p>`;
 
             if (currentRoundType === 'match') {
                 targetWave = { divs: data.targetFreqDivs, y: height * 0.25, amp: 60 };
@@ -742,17 +765,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const btn = document.createElement('button');
                     btn.textContent = '→';
                     btn.className = 'btn select-wave-btn';
-                    // Kleinere knop styling
                     btn.style.fontSize = '1.5em';
                     btn.style.padding = '0px 10px';
                     btn.style.lineHeight = '1.2';
-
-                    // Positionering
                     btn.style.position = 'absolute';
-                    btn.style.left = '-50px'; // Links van de canvas
-                    btn.style.top = `${w.buttonY - 18}px`; // Gecentreerd op de golf
+                    btn.style.left = '-50px';
+                    btn.style.top = `${w.buttonY - 18}px`;
                     btn.onclick = () => checkClick(w.isTarget, btn);
-                    if (gameWrapper) gameWrapper.appendChild(btn);
+                    if (canvasContainer) canvasContainer.appendChild(btn);
                 });
             }
         }
@@ -779,9 +799,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function checkClick(isCorrect, clickedButton) { 
-            const gameWrapper = canvas.closest('.game-wrapper');
-            if (gameWrapper) {
-                gameWrapper.querySelectorAll('.select-wave-btn').forEach(btn => {
+            if (canvasContainer) {
+                canvasContainer.querySelectorAll('.select-wave-btn').forEach(btn => {
                     btn.disabled = true;
                     btn.style.opacity = '0.5';
                 });
@@ -824,6 +843,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         let gameEnded = false, score = 0, startTime = Date.now(), animationFrame = 0;
         
+        let lives = 3;
+        let isInvincible = false;
+
         const TILE_SIZE = 40;
         const GRID_COLS = width / TILE_SIZE;
         const GRID_ROWS = height / TILE_SIZE;
@@ -846,12 +868,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let player = {};
         let exit = {};
+        let startPos = {};
         
         for (let row = 0; row < GRID_ROWS; row++) {
             for (let col = 0; col < GRID_COLS; col++) {
-                if (mazeLayout[row][col] === 'P') {
-                    player = { gridX: col, gridY: row, x: col * TILE_SIZE + TILE_SIZE / 2, y: row * TILE_SIZE + TILE_SIZE / 2, radius: TILE_SIZE / 2 - 4, speed: 2 };
-                } else if (mazeLayout[row][col] === 'E') {
+                if (mazeLayout[row] && mazeLayout[row][col] === 'P') {
+                    startPos = { x: col * TILE_SIZE + TILE_SIZE / 2, y: row * TILE_SIZE + TILE_SIZE / 2 };
+                    player = { gridX: col, gridY: row, x: startPos.x, y: startPos.y, radius: TILE_SIZE / 2 - 4, speed: 2 };
+                } else if (mazeLayout[row] && mazeLayout[row][col] === 'E') {
                     exit = { x: col * TILE_SIZE, y: row * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
                 }
             }
@@ -904,7 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             noiseChangeTimer--;
             if(noiseChangeTimer <= 0) {
-                 if (Math.random() < 0.45) { // 45% kans op hoog geluid
+                 if (Math.random() < 0.45) {
                     ambientNoise = 0.7 + Math.random() * 0.3;
                 } else {
                     ambientNoise = Math.random() * 0.7;
@@ -912,6 +936,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 noiseChangeTimer = Math.random() * 90 + 30;
             }
             
+            if (isInvincible) return;
+
             guards.forEach(guard => {
                 let target = guard.path[guard.currentPathIndex];
                 let targetX = target.x * TILE_SIZE;
@@ -931,15 +957,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const playerDist = Math.hypot(player.x - guard.x, player.y - guard.y);
                 if (isMoving && playerDist < guard.radius && ambientNoise < NOISE_SAFETY_THRESHOLD) {
-                    gameEnded = true;
-                    onComplete(0, "Gedetecteerd! Missie gefaald.", 'incorrect');
+                    lives--;
+                    if (lives <= 0) {
+                        gameEnded = true;
+                        onComplete(0, "Gedetecteerd! Missie gefaald.", 'incorrect');
+                    } else {
+                        player.x = startPos.x;
+                        player.y = startPos.y;
+                        player.gridX = Math.floor(startPos.x / TILE_SIZE);
+                        player.gridY = Math.floor(startPos.y / TILE_SIZE);
+                        isInvincible = true;
+                        showFeedback(`Gedetecteerd! ${lives} poging(en) over.`, 'incorrect');
+                        setTimeout(() => { isInvincible = false; }, 2000);
+                    }
                 }
             });
 
             if (player.gridX === Math.floor(exit.x / TILE_SIZE) && player.gridY === Math.floor(exit.y / TILE_SIZE)) {
                 gameEnded = true;
                 const timeTaken = (Date.now() - startTime) / 1000;
-                score = Math.max(10, 500 - timeTaken * 5);
+                score = Math.max(10, 500 - timeTaken * 5) + (lives * 50);
                 onComplete(score, `Basis geïnfiltreerd! Tijd: ${timeTaken.toFixed(1)}s. Punten: ${score.toFixed(0)}`, 'correct');
             }
         }
@@ -975,10 +1012,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(guard.x, guard.y, TILE_SIZE/3, 0, 2 * Math.PI); ctx.fill();
             });
 
+            ctx.globalAlpha = isInvincible ? 0.5 : 1.0;
             ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, 2*Math.PI); ctx.fill();
+            ctx.globalAlpha = 1.0;
             
             const meterHeight = height * 0.4, meterWidth = 30;
-            const meterX = width - 50, meterY = height - 50 - meterHeight;
+            const meterX = width - 45; // Iets naar rechts verplaatst
+            const meterY = height - meterHeight - 20; // Wat hoger geplaatst
             ctx.fillStyle = '#333'; ctx.fillRect(meterX, meterY, meterWidth, meterHeight);
             ctx.strokeStyle = 'white'; ctx.strokeRect(meterX, meterY, meterWidth, meterHeight);
 
@@ -989,9 +1029,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = ambientNoise > NOISE_SAFETY_THRESHOLD ? 'var(--accent-lime-green)' : 'yellow';
             ctx.fillRect(meterX, meterY + meterHeight - noiseBarHeight, meterWidth, noiseBarHeight);
             
-            stat1.textContent = 'Speler: Blauw';
+            stat1.textContent = `Pogingen: ${lives}`;
             stat2.textContent = 'Doel: EXIT';
-            stat3.textContent = 'Omgevingsgeluid (beweeg boven rode lijn)';
+            stat3.textContent = 'Geluid (beweeg boven rode lijn)';
         }
 
         function gameLoop() {
@@ -1015,13 +1055,14 @@ document.addEventListener('DOMContentLoaded', () => {
         window.activeGameListeners.push({target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler});
         window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
 
-        function spawnObject(harmfulRatio, baseSpeed, speedVariation) {
+        function spawnObject(isHarmful, baseSpeed, speedVariation) {
             objects.push({
                 x: width,
                 y: Math.random() * (height - 30),
-                width: 30, height: 30,
+                width: 30,
+                height: 30, // Wordt gebruikt voor bounding box van cirkel
                 speed: baseSpeed + Math.random() * speedVariation,
-                harmful: Math.random() < harmfulRatio
+                harmful: isHarmful
             });
         }
 
@@ -1031,24 +1072,25 @@ document.addEventListener('DOMContentLoaded', () => {
             
             spawnTimer++;
 
-            // Snellere opbouw van moeilijkheidsgraad
-            let spawnRate = Math.max(10, 35 - (gameTime / 120)); // Spawn rate wordt sneller hoger
+            let spawnRate = Math.max(10, 35 - (gameTime / 120));
 
             if(spawnTimer > spawnRate) { 
                 spawnTimer = 0; 
 
-                const harmfulRatio = Math.min(0.95, 0.75 + (gameTime / 2000)); // Verhouding gevaarlijke blokjes stijgt sneller
-                const baseSpeed = 5 + (gameTime / 600); // Basissnelheid stijgt sneller
+                const baseSpeed = 5 + (gameTime / 600);
                 const speedVariation = 2 + (gameTime / 1200);
 
-                spawnObject(harmfulRatio, baseSpeed, speedVariation);
+                // Spawn een schadelijk object
+                spawnObject(true, baseSpeed, speedVariation);
 
-                // Eerder en vaker salvo's
-                if (gameTime > 480 && Math.random() < 0.40) { // Na 8 seconden
-                    spawnObject(harmfulRatio, baseSpeed, speedVariation);
+                if (gameTime > 600 && Math.random() < 0.40) {
+                    spawnObject(true, baseSpeed, speedVariation);
                 }
-                if (gameTime > 1200 && Math.random() < 0.30) { // Na 20 seconden
-                    spawnObject(harmfulRatio, baseSpeed, speedVariation);
+
+                // Kans op een nuttig object wordt groter over tijd
+                const helpfulChance = Math.min(0.55, 0.15 + (gameTime / 4000));
+                if (Math.random() < helpfulChance) {
+                    spawnObject(false, baseSpeed * 0.9, speedVariation);
                 }
             }
             
@@ -1057,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(obj.x < -obj.width) {
                     objects.splice(index, 1);
                 }
+                // Simpele AABB collision check blijft effectief
                 if(player.x < obj.x + obj.width && player.x + player.width > obj.x && player.y < obj.y + obj.height && player.y + player.height > obj.y) {
                     if(obj.harmful) { 
                         lives--; 
@@ -1077,8 +1120,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
             
             objects.forEach(obj => { 
-                ctx.fillStyle = obj.harmful ? '#ff4d4d' : 'var(--accent-lime-green)'; 
-                ctx.fillRect(obj.x, obj.y, obj.width, obj.height); 
+                if (obj.harmful) {
+                    ctx.fillStyle = '#ff4d4d'; // Rood
+                    ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+                } else {
+                    ctx.fillStyle = 'var(--accent-lime-green)'; // Groen
+                    ctx.beginPath();
+                    ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             });
             
             stat1.textContent = `Levens: ${lives}`; 
