@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ],
              minigame: {
                 title: "Analyse: Geluidsmaatregelen", init: null, type: 'drag_drop',
-                question: "Sleep de eigenschappen naar de juiste maatregel.",
+                question: "Sleep de eigenschappen naar de juiste plek.",
                 categories: ['Geluidsscherm', 'Geluidswal'],
                 items: [
                     { text: "Bestaat uit aarde, vaak begroeid", answer: 'Geluidswal' },
@@ -257,7 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.createElement('div');
         container.className = 'question-container task-container';
         
-        let contentHTML = `<h3>${minigameData.title}</h3><p>${minigameData.description}</p>`;
+        let contentHTML = `<h3>${minigameData.title}</h3>`;
+        // De omschrijving wordt nu ook getoond als die bestaat
+        if(minigameData.description){
+             contentHTML += `<p>${minigameData.description}</p>`;
+        }
         
         if(minigameData.init) {
              contentHTML += `<canvas id="minigame-canvas" class="level-canvas" width="500" height="300"></canvas>`;
@@ -307,6 +311,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (minigameData.type === 'drag_drop') {
             container.querySelector('.interaction-container')?.remove(); // Verwijder de standaard input velden
+            
+            // FIX: Voeg de vraag hier expliciet toe
+            const questionParagraph = document.createElement('p');
+            questionParagraph.innerHTML = `<strong>${minigameData.question}</strong>`;
+            container.appendChild(questionParagraph);
+
             const ddContainer = document.createElement('div');
             ddContainer.className = 'drag-drop-container';
             const itemsPool = document.createElement('div');
@@ -346,6 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
         gameWrapper.style.display = 'flex';
         gameWrapper.style.gap = '20px';
         gameWrapper.style.alignItems = 'flex-start';
+        // Cruciaal voor positionering van kinderen
+        gameWrapper.style.position = 'relative';
 
         const canvasWrapper = document.createElement('div');
         canvasWrapper.style.flexGrow = '1';
@@ -367,17 +379,19 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(gameWrapper);
 
         if(levelData.init === initFrequencyMatchGame) {
-            gameWrapper.style.position = 'relative';
-
             const infoPanel = document.createElement('div');
             infoPanel.id = 'info-panel';
-            infoPanel.style.width = '200px';
-            infoPanel.style.flexShrink = '0';
+            // Aangepaste styling voor nieuwe positie
+            infoPanel.style.position = 'absolute';
+            infoPanel.style.bottom = '10px';
+            infoPanel.style.right = '0px';
+            infoPanel.style.width = '180px';
             infoPanel.style.padding = '10px';
             infoPanel.style.border = '1px solid var(--accent-lime-green)';
             infoPanel.style.borderRadius = '8px';
             infoPanel.style.backgroundColor = 'rgba(0,20,0,0.5)';
             infoPanel.innerHTML = '<h4>SYSTEM INFO</h4><div id="info-panel-content"></div>';
+            // Voeg toe aan de wrapper zodat positionering werkt
             gameWrapper.appendChild(infoPanel);
 
             const controls = document.createElement('div');
@@ -715,7 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('freq-up-btn').onclick = () => { if(playerWave.divs > 1) playerWave.divs--; };
                 document.getElementById('confirm-freq-btn').onclick = checkMatch;
             } else { // 'click' round
-                stat3.textContent = `Klik op de knop naast de ${data.targetFreqHz} Hz golf.`;
+                stat3.textContent = `Klik op de pijl naast de ${data.targetFreqHz} Hz golf.`;
                 controlsContainer.innerHTML = ''; 
                 clickWaves = [
                     { divs: 20, y: height * 0.2, amp: 50, buttonY: height * 0.2},
@@ -726,11 +740,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 clickWaves.forEach((w) => {
                     w.isTarget = (Math.round(1 / (w.divs * data.timebase * 0.001)) === data.targetFreqHz);
                     const btn = document.createElement('button');
-                    btn.textContent = 'Selecteer';
+                    btn.textContent = '→';
                     btn.className = 'btn select-wave-btn';
+                    // Kleinere knop styling
+                    btn.style.fontSize = '1.5em';
+                    btn.style.padding = '0px 10px';
+                    btn.style.lineHeight = '1.2';
+
+                    // Positionering
                     btn.style.position = 'absolute';
-                    btn.style.left = `${width + 15}px`;
-                    btn.style.top = `${w.buttonY - 15}px`;
+                    btn.style.left = '-50px'; // Links van de canvas
+                    btn.style.top = `${w.buttonY - 18}px`; // Gecentreerd op de golf
                     btn.onclick = () => checkClick(w.isTarget, btn);
                     if (gameWrapper) gameWrapper.appendChild(btn);
                 });
@@ -802,14 +822,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function initStealthGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
-        let gameEnded = false, score = 0, startTime = Date.now();
+        let gameEnded = false, score = 0, startTime = Date.now(), animationFrame = 0;
         
-        // --- Setup van de doolhof en spel-elementen ---
         const TILE_SIZE = 40;
         const GRID_COLS = width / TILE_SIZE;
         const GRID_ROWS = height / TILE_SIZE;
         
-        // 1 = muur, 0 = pad, P = Speler, E = Uitgang
         const mazeLayout = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 'P', 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -829,7 +847,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let player = {};
         let exit = {};
         
-        // Zoek start en eindpunt
         for (let row = 0; row < GRID_ROWS; row++) {
             for (let col = 0; col < GRID_COLS; col++) {
                 if (mazeLayout[row][col] === 'P') {
@@ -841,15 +858,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let guards = [
-            { x: 3 * TILE_SIZE, y: 4 * TILE_SIZE, path: [{x:3, y:4}, {x:3, y:8}, {x:6, y:8}, {x:6, y:4}], currentPathIndex: 0, speed: 1, detectionRadius: TILE_SIZE * 2.5 },
-            { x: 10 * TILE_SIZE, y: 1 * TILE_SIZE, path: [{x:10, y:1}, {x:17, y:1}, {x:17, y:4}, {x:10, y:4}], currentPathIndex: 0, speed: 1.2, detectionRadius: TILE_SIZE * 3 }
+            { x: 3 * TILE_SIZE, y: 4 * TILE_SIZE, path: [{x:3, y:4}, {x:3, y:8}, {x:6, y:8}, {x:6, y:4}], currentPathIndex: 0, speed: 1, baseRadius: TILE_SIZE * 2, radius: TILE_SIZE * 2 },
+            { x: 10 * TILE_SIZE, y: 1 * TILE_SIZE, path: [{x:10, y:1}, {x:17, y:1}, {x:17, y:4}, {x:10, y:4}], currentPathIndex: 0, speed: 1.2, baseRadius: TILE_SIZE * 2.5, radius: TILE_SIZE * 2.5 }
         ];
 
         let keys = {};
         let isMoving = false;
         let ambientNoise = 0;
         let noiseChangeTimer = 0;
-        const NOISE_SAFETY_THRESHOLD = 0.7; // Drempel: als het omgevingsgeluid hierboven is, ben je veilig.
+        const NOISE_SAFETY_THRESHOLD = 0.7;
 
         const keydownHandler = (e) => {
              if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) keys[e.code] = true;
@@ -870,16 +887,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function update() {
-            // Update spelerbeweging
             let moveX = 0, moveY = 0;
             if (keys['ArrowLeft']) moveX = -player.speed;
             if (keys['ArrowRight']) moveX = player.speed;
             if (keys['ArrowUp']) moveY = -player.speed;
             if (keys['ArrowDown']) moveY = player.speed;
-            
             isMoving = moveX !== 0 || moveY !== 0;
 
-            // Toekomstige positie en collision check
             const nextX = player.x + moveX;
             const nextY = player.y + moveY;
             const nextGridX = Math.floor(nextX / TILE_SIZE);
@@ -888,16 +902,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isWall(nextGridX, player.gridY)) { player.x = nextX; player.gridX = nextGridX; }
             if (!isWall(player.gridX, nextGridY)) { player.y = nextY; player.gridY = nextGridY; }
 
-            // Update omgevingsgeluid
             noiseChangeTimer--;
             if(noiseChangeTimer <= 0) {
-                ambientNoise = Math.random();
-                noiseChangeTimer = Math.random() * 120 + 60; // Verandert elke 1-3 seconden
+                 if (Math.random() < 0.45) { // 45% kans op hoog geluid
+                    ambientNoise = 0.7 + Math.random() * 0.3;
+                } else {
+                    ambientNoise = Math.random() * 0.7;
+                }
+                noiseChangeTimer = Math.random() * 90 + 30;
             }
             
-            // Update wachters en detectie
             guards.forEach(guard => {
-                // Patrouilleer
                 let target = guard.path[guard.currentPathIndex];
                 let targetX = target.x * TILE_SIZE;
                 let targetY = target.y * TILE_SIZE;
@@ -912,28 +927,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     guard.y += (dy / dist) * guard.speed;
                 }
 
-                // Detectie Logica
+                guard.radius = guard.baseRadius * (1.8 - ambientNoise * 1.5);
+
                 const playerDist = Math.hypot(player.x - guard.x, player.y - guard.y);
-                if (isMoving && playerDist < guard.detectionRadius && ambientNoise < NOISE_SAFETY_THRESHOLD) {
+                if (isMoving && playerDist < guard.radius && ambientNoise < NOISE_SAFETY_THRESHOLD) {
                     gameEnded = true;
                     onComplete(0, "Gedetecteerd! Missie gefaald.", 'incorrect');
                 }
             });
 
-            // Check win conditie
             if (player.gridX === Math.floor(exit.x / TILE_SIZE) && player.gridY === Math.floor(exit.y / TILE_SIZE)) {
                 gameEnded = true;
                 const timeTaken = (Date.now() - startTime) / 1000;
-                score = Math.max(10, 500 - timeTaken * 5); // Hogere max score voor moeilijkere missie
+                score = Math.max(10, 500 - timeTaken * 5);
                 onComplete(score, `Basis geïnfiltreerd! Tijd: ${timeTaken.toFixed(1)}s. Punten: ${score.toFixed(0)}`, 'correct');
             }
         }
         
         function draw() {
-            // Achtergrond
+            animationFrame++;
             ctx.fillStyle = '#1E1E1E'; ctx.fillRect(0, 0, width, height);
             
-            // Teken doolhof
             for (let row = 0; row < GRID_ROWS; row++) {
                 for (let col = 0; col < GRID_COLS; col++) {
                     if (mazeLayout[row] && mazeLayout[row][col] === 1) {
@@ -943,44 +957,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // Teken uitgang
             ctx.fillStyle = 'var(--accent-lime-green)'; ctx.fillRect(exit.x, exit.y, TILE_SIZE, TILE_SIZE);
+            ctx.font = `bold ${16 + Math.sin(animationFrame * 0.1) * 2}px Roboto Mono`;
+            ctx.fillStyle = "black"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText('EXIT', exit.x + TILE_SIZE / 2, exit.y + TILE_SIZE / 2);
 
-            // Teken wachters en detectieradius
             guards.forEach(guard => {
-                const isDetecting = isMoving && ambientNoise < NOISE_SAFETY_THRESHOLD;
-                const radiusColor = isDetecting ? '255, 0, 0' : '255, 255, 0'; // Rood als gevaarlijk, geel als veilig
+                const isDangerous = isMoving && ambientNoise < NOISE_SAFETY_THRESHOLD;
+                const radiusColor = isDangerous ? '255, 0, 0' : '255, 255, 0';
 
-                const gradient = ctx.createRadialGradient(guard.x, guard.y, 10, guard.x, guard.y, guard.detectionRadius);
+                const gradient = ctx.createRadialGradient(guard.x, guard.y, 10, guard.x, guard.y, guard.radius);
                 gradient.addColorStop(0, `rgba(${radiusColor}, 0.2)`);
                 gradient.addColorStop(1, `rgba(${radiusColor}, 0)`);
                 ctx.fillStyle = gradient;
-                ctx.beginPath(); ctx.arc(guard.x, guard.y, guard.detectionRadius, 0, 2 * Math.PI); ctx.fill();
+                ctx.beginPath(); ctx.arc(guard.x, guard.y, guard.radius, 0, 2 * Math.PI); ctx.fill();
                 
-                // Wacht zelf
                 ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(guard.x, guard.y, TILE_SIZE/3, 0, 2 * Math.PI); ctx.fill();
             });
 
-            // Teken speler
             ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, 2*Math.PI); ctx.fill();
             
-            // Teken geluidsmeter
             const meterHeight = height * 0.4, meterWidth = 30;
             const meterX = width - 50, meterY = height - 50 - meterHeight;
             ctx.fillStyle = '#333'; ctx.fillRect(meterX, meterY, meterWidth, meterHeight);
             ctx.strokeStyle = 'white'; ctx.strokeRect(meterX, meterY, meterWidth, meterHeight);
 
-            // Gevaar drempel
             const thresholdY = meterY + meterHeight * (1-NOISE_SAFETY_THRESHOLD);
-            ctx.beginPath(); ctx.moveTo(meterX, thresholdY); ctx.lineTo(meterX + meterWidth, thresholdY); ctx.strokeStyle = 'red'; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(meterX, thresholdY); ctx.lineTo(meterX + meterWidth, thresholdY); ctx.strokeStyle = 'red'; ctx.lineWidth=2; ctx.stroke();
             
-            // Actueel geluid
             const noiseBarHeight = ambientNoise * meterHeight;
             ctx.fillStyle = ambientNoise > NOISE_SAFETY_THRESHOLD ? 'var(--accent-lime-green)' : 'yellow';
             ctx.fillRect(meterX, meterY + meterHeight - noiseBarHeight, meterWidth, noiseBarHeight);
             
             stat1.textContent = 'Speler: Blauw';
-            stat2.textContent = 'Doel: Groene tegel';
+            stat2.textContent = 'Doel: EXIT';
             stat3.textContent = 'Omgevingsgeluid (beweeg boven rode lijn)';
         }
 
@@ -993,9 +1003,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gameLoop();
     }
     
-    // =========================================================================
-    // <<< GEAVANCEERDE GEHOORBESCHERMING GAME FUNCTIE >>>
-    // =========================================================================
     function initHearingProtectionGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
@@ -1008,11 +1015,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.activeGameListeners.push({target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler});
         window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
 
-        // Helper functie om een enkel object te spawnen
         function spawnObject(harmfulRatio, baseSpeed, speedVariation) {
             objects.push({
                 x: width,
-                y: Math.random() * (height - 30), // Spawn op een willekeurige hoogte
+                y: Math.random() * (height - 30),
                 width: 30, height: 30,
                 speed: baseSpeed + Math.random() * speedVariation,
                 harmful: Math.random() < harmfulRatio
@@ -1025,30 +1031,27 @@ document.addEventListener('DOMContentLoaded', () => {
             
             spawnTimer++;
 
-            // Moeilijkheidsgraad op basis van speeltijd (gameTime in frames)
-            let spawnRate = Math.max(12, 40 - (gameTime / 180)); // Spawn rate wordt hoger (timer korter) naarmate de tijd vordert
+            // Snellere opbouw van moeilijkheidsgraad
+            let spawnRate = Math.max(10, 35 - (gameTime / 120)); // Spawn rate wordt sneller hoger
 
             if(spawnTimer > spawnRate) { 
                 spawnTimer = 0; 
 
-                const harmfulRatio = Math.min(0.95, 0.80 + (gameTime / 3600)); // Verhouding gevaarlijke blokjes stijgt van 80% naar max 95%
-                const baseSpeed = 5 + (gameTime / 720); // Basissnelheid stijgt
-                const speedVariation = 2 + (gameTime / 1800); // Variatie in snelheid stijgt
+                const harmfulRatio = Math.min(0.95, 0.75 + (gameTime / 2000)); // Verhouding gevaarlijke blokjes stijgt sneller
+                const baseSpeed = 5 + (gameTime / 600); // Basissnelheid stijgt sneller
+                const speedVariation = 2 + (gameTime / 1200);
 
-                // Spawn altijd één object
                 spawnObject(harmfulRatio, baseSpeed, speedVariation);
 
-                // Na 15s, kans op een tweede object
-                if (gameTime > 900 && Math.random() < 0.35) {
+                // Eerder en vaker salvo's
+                if (gameTime > 480 && Math.random() < 0.40) { // Na 8 seconden
                     spawnObject(harmfulRatio, baseSpeed, speedVariation);
                 }
-                // Na 40s, kans op een derde object
-                if (gameTime > 2400 && Math.random() < 0.25) {
+                if (gameTime > 1200 && Math.random() < 0.30) { // Na 20 seconden
                     spawnObject(harmfulRatio, baseSpeed, speedVariation);
                 }
             }
             
-            // Update positie van de objecten en check voor collisions
             objects.forEach((obj, index) => {
                 obj.x -= obj.speed; 
                 if(obj.x < -obj.width) {
@@ -1058,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if(obj.harmful) { 
                         lives--; 
                     } else { 
-                        lives = Math.min(5, lives + 1); // Max 5 levens
+                        lives = Math.min(5, lives + 1);
                     }
                     objects.splice(index, 1);
                 }
