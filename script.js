@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-button');
     const levelTitle = document.getElementById('level-title');
     const levelContent = document.getElementById('level-content');
-    const feedbackElement = document.getElementById('feedback');
     const nextButton = document.getElementById('next-button');
     const finalAgentName = document.getElementById('final-agent-name');
     const finalScoreDisplay = document.getElementById('final-score');
@@ -98,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Training 3
         {
             title: "Trainingsmissie 3: Stealth Operatie", type: 'minigame_only', init: initStealthGame,
-            description: "Infiltreer de SILENT-basis. Beweeg (pijltje rechts) alleen als het omgevingsgeluid hoog is (groene balk) om de wachten niet te alarmeren. Sta stil als het stil is!"
+            description: "Infiltreer de SILENT-basis. Beweeg (pijltje rechts) alleen als het omgevingsgeluid hoog is om de wachten niet te alarmeren. Sta stil als het stil is, anders word je gedetecteerd!"
         },
         // Missie 4
         {
@@ -175,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         levelTitle.textContent = levelData.title;
         levelContent.innerHTML = '';
         nextButton.classList.add('hidden');
-        feedbackElement.classList.remove('show');
         
         completedTasks = 0;
         let questionCount = levelData.questions ? levelData.questions.length : 0;
@@ -266,11 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         container.innerHTML = contentHTML;
 
-        // Container voor vragen en knoppen
         const interactionContainer = document.createElement('div');
         interactionContainer.className = "interaction-container";
         
-        // Tussenvraag (indien aanwezig)
         if(minigameData.intermediateQuestion) {
             const intermediateGroup = document.createElement('div');
             intermediateGroup.innerHTML = `<p><strong>${minigameData.intermediateQuestion}</strong></p>`;
@@ -282,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
             interactionContainer.appendChild(intermediateGroup);
         }
 
-        // Hoofdvraag (indien aanwezig)
         if (minigameData.question) {
             const mainGroup = document.createElement('div');
             mainGroup.innerHTML = `<p><strong>${minigameData.question}</strong></p>`;
@@ -297,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(interactionContainer);
 
 
-        // Hint Knop
         if (minigameData.hint) {
             const hintBtn = document.createElement('button');
             hintBtn.textContent = "Hint (-100 punten)";
@@ -346,12 +340,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function createStandaloneMinigameElement(levelData) {
         const container = document.createElement('div');
         container.className = 'question-container task-container';
-        // Wrapper voor canvas en info paneel
+        
         const gameWrapper = document.createElement('div');
         gameWrapper.style.display = 'flex';
         gameWrapper.style.gap = '20px';
         gameWrapper.style.alignItems = 'flex-start';
-
 
         const canvasWrapper = document.createElement('div');
         canvasWrapper.style.flexGrow = '1';
@@ -360,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const statsContainer = document.createElement('div');
         statsContainer.id = 'game-stats';
         statsContainer.style.display = 'flex';
-        statsContainer.style.flexDirection = 'column'; // Maak het verticaal
+        statsContainer.style.flexDirection = 'column'; 
         statsContainer.style.justifyContent = 'space-between';
         statsContainer.style.padding = '10px';
         statsContainer.style.background = 'rgba(0,0,0,0.3)';
@@ -388,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
             controls.id = 'freq-controls';
             controls.style.textAlign = 'center';
             controls.style.padding = '10px';
-            container.appendChild(controls); // Controls worden dynamisch gevuld door de game
+            container.appendChild(controls); 
         }
 
         return container;
@@ -490,6 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function checkLevelCompletion() { if (completedTasks >= levelTasks) nextButton.classList.remove('hidden'); }
     function nextLevel() { currentLevelIndex++; if (currentLevelIndex < levels.length) loadLevel(levels[currentLevelIndex]); else endGame(); }
+    
     function showFeedback(message, type) {
         const popup = document.createElement('div');
         popup.className = `feedback-popup ${type}`;
@@ -501,10 +495,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             popup.classList.remove('show');
             setTimeout(() => {
-                gameContainer.removeChild(popup);
+                if(gameContainer.contains(popup)) {
+                    gameContainer.removeChild(popup);
+                }
             }, 500);
         }, 2000);
     }
+
     function updateScore(points) { score += points; scoreDisplay.textContent = score; }
     
     function endGame() {
@@ -548,10 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const keydownHandler = (e) => keys[e.code] = true;
         const keyupHandler = (e) => { if (e.code === 'Space') firePing(); delete keys[e.code]; };
         
-        window.activeGameListeners = [
-            {target: window, type: 'keydown', handler: keydownHandler},
-            {target: window, type: 'keyup', handler: keyupHandler}
-        ];
+        window.activeGameListeners = [ {target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler} ];
         window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
 
         function firePing() { if (pingsLeft > 0 && pings.length === 0) { pingsLeft--; pings.push({ x: ship.x + ship.width / 2, y: ship.y + ship.height, radius: 10, speed: 3, maxRadius: width, hit: false, alpha: 1 }); stat3.textContent = "Sonar ping verstuurd..."; } }
@@ -559,15 +553,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (keys['ArrowLeft'] && ship.x > 0) ship.x -= ship.speed; if (keys['ArrowRight'] && ship.x < width - ship.width) ship.x += ship.speed;
             pings.forEach((ping, p_index) => {
                 if (ping.hit) {
-                    ping.alpha -= 0.05; // Fade out
+                    ping.alpha -= 0.05; 
                     if (ping.alpha <= 0) pings.splice(p_index, 1);
                     return;
                 }
-                
                 ping.radius += ping.speed;
                 for (const rock of rocks) { if (!rock.found && checkCollision(ping, rock)) { rock.found = true; ping.hit = true; stat3.textContent = "Echo: Rotsformatie gedetecteerd."; return; }}
                 for (const drone of drones) { if (!drone.found && checkCollision(ping, drone)) { drone.found = true; dronesFound++; ping.hit = true; stat3.textContent = "Echo: SILENT drone gelokaliseerd!"; return;}}
-                
                 if (ping.radius > ping.maxRadius) { if(!ping.hit) { stat3.textContent = "Echo: Geen objecten gedetecteerd."; } pings.splice(p_index, 1); }
             });
         }
@@ -624,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         const controlsContainer = document.getElementById('freq-controls');
 
-        let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false;
+        let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false, mousePos = {x:0, y:0};
         let targetWave = {}, playerWave = {}, clickWaves = [];
         
         const roundData = [
@@ -658,22 +650,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('confirm-freq-btn').onclick = checkMatch;
             } else { 
                 stat3.textContent = `Klik op de knop naast de ${data.targetFreqHz} Hz golf.`;
-                controlsContainer.innerHTML = ''; // Clear old buttons
+                controlsContainer.innerHTML = ''; 
                 clickWaves = [
                     { divs: 20, y: height * 0.2, amp: 50, buttonY: height * 0.2},
                     { divs: 10, y: height * 0.5, amp: 50, buttonY: height * 0.5},
                     { divs: 5, y: height * 0.8, amp: 50, buttonY: height * 0.8}
                 ];
-                clickWaves.forEach((w, i) => {
+                clickWaves.forEach((w) => {
                     w.isTarget = (Math.round(1 / (w.divs * data.timebase * 0.001)) === data.targetFreqHz);
                     const btn = document.createElement('button');
                     btn.textContent = 'Selecteer';
                     btn.className = 'btn';
                     btn.style.position = 'absolute';
-                    btn.style.left = '20px'; // Position inside the game-container
-                    btn.style.top = `${w.buttonY - 15}px`;
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const containerRect = gameContainer.getBoundingClientRect();
+                    btn.style.left = `${canvasRect.right - containerRect.left + 10}px`; // Naast de canvas
+                    btn.style.top = `${canvasRect.top - containerRect.top + w.buttonY - 15}px`;
                     btn.onclick = () => checkClick(w.isTarget);
-                    controlsContainer.appendChild(btn);
+                    levelContent.appendChild(btn); // Toevoegen aan levelContent voor correcte positionering
                 });
             }
         }
@@ -692,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         function checkClick(isCorrect) { 
             cleanupListeners();
-            controlsContainer.innerHTML = '';
+            levelContent.querySelectorAll('.btn').forEach(btn => btn.remove()); // Verwijder selectieknoppen
             if(isCorrect) { score += 150; showFeedback('Correct! +150 punten.', 'correct'); } else { showFeedback('Fout signaal geselecteerd.', 'incorrect'); }
             setTimeout(nextRound, 1500);
         }
@@ -719,13 +713,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function initStealthGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
-        let gameEnded = false;
+        let gameEnded = false, score = 0, startTime = Date.now();
 
         let player = { x: 50, y: height/2, radius: 15, speed: 1.5 };
         let exit = { x: width - 50, y: height/2, radius: 20 };
         let guards = [
-            { x: width * 0.3, y: height * 0.3, radius: 80 },
-            { x: width * 0.6, y: height * 0.7, radius: 100 }
+            { x: width * 0.3, y: height * 0.3, radius: 80, baseRadius: 80 },
+            { x: width * 0.6, y: height * 0.7, radius: 100, baseRadius: 100 }
         ];
         
         let ambientNoise = 0;
@@ -747,6 +741,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 ambientNoise = Math.random();
                 noiseChangeTimer = Math.random() * 120 + 60; // Change every 1-3 seconds
             }
+
+            // Update guard detection radius based on noise
+            guards.forEach(guard => {
+                guard.radius = guard.baseRadius * (1.2 - ambientNoise); // Radius is groter als het stil is
+            });
 
             // Move player
             if(isMoving) {
@@ -770,7 +769,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check for win
             if (Math.hypot(player.x - exit.x, player.y - exit.y) < player.radius + exit.radius) {
                 gameEnded = true;
-                onComplete(250, "Basis geïnfiltreerd! Goed werk agent.", 'correct');
+                const timeTaken = (Date.now() - startTime) / 1000;
+                score = Math.max(10, 300 - timeTaken * 5); // Score based on time
+                onComplete(score, `Basis geïnfiltreerd! Tijd: ${timeTaken.toFixed(1)}s. Punten: ${score.toFixed(0)}`, 'correct');
             }
         }
         
@@ -780,7 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Draw detection zones
             guards.forEach(guard => {
                 const gradient = ctx.createRadialGradient(guard.x, guard.y, 10, guard.x, guard.y, guard.radius);
-                const color = (isMoving && ambientNoise < 0.6) ? '255, 0, 0' : '255, 255, 0';
+                const color = (isMoving && guard.radius > guard.baseRadius) ? '255, 0, 0' : '255, 255, 0';
                 gradient.addColorStop(0, `rgba(${color}, 0.3)`);
                 gradient.addColorStop(1, `rgba(${color}, 0)`);
                 ctx.fillStyle = gradient;
@@ -823,13 +824,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         let player = {x: 50, y: height/2, width: 20, height: 40, speed: 10};
-        let objects = [], lives = 3, itemsCollected = 0, spawnTimer = 0, gameTime = 0, gameEnded = false, difficultyTimer = 0;
+        let objects = [], lives = 3, spawnTimer = 0, gameTime = 0, gameEnded = false, difficultyTimer = 0;
         
         let keys = {};
         const keydownHandler = (e) => keys[e.code] = true;
         const keyupHandler = (e) => delete keys[e.code];
         window.activeGameListeners.push({target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler});
-
+        window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
 
         function update() {
             if(keys['ArrowUp'] && player.y > 0) player.y -= player.speed; 
@@ -851,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
             objects.forEach((obj, index) => {
                 obj.x -= obj.speed; if(obj.x < -obj.width) objects.splice(index, 1);
                 if(player.x < obj.x + obj.width && player.x + player.width > obj.x && player.y < obj.y + obj.height && player.y + player.height > obj.y) {
-                    if(obj.harmful) { lives--; } else { lives = Math.min(5, lives + 1); itemsCollected++; }
+                    if(obj.harmful) { lives--; } else { lives = Math.min(5, lives + 1); }
                     objects.splice(index, 1);
                 }
             });
@@ -862,7 +863,7 @@ document.addEventListener('DOMContentLoaded', () => {
             objects.forEach(obj => { ctx.fillStyle = obj.harmful ? '#ff4d4d' : 'var(--accent-lime-green)'; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); });
             stat1.textContent = `Levens: ${lives}`; 
             stat2.textContent = `Score: ${Math.floor(gameTime / 60)}`;
-            stat3.textContent = `Bescherming: ${itemsCollected}`;
+            stat3.textContent = '';
         }
 
         function gameLoop() {
