@@ -97,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         // Training 3
         {
-            title: "Trainingsmissie 3: Stoorzender Netwerk", type: 'minigame_only', init: initJammerGame,
-            description: "SILENT verstuurt datastromen naar hun HQ. Plaats 3 stoorzenders op de beschikbare torenlocaties om de datastromen te vernietigen voordat ze ons netwerk bereiken."
+            title: "Trainingsmissie 3: Mengpaneel Meester", type: 'minigame_only', init: initMixerGame,
+            description: "Je bent undercover als geluidstechnicus bij een SILENT-evenement. Voorkom dat het geluid te hard wordt! Klik op de rode 'FEEDBACK' kanalen om ze te dempen voordat de master-volumebalk (rechts) te lang in het rood blijft."
         },
         // Missie 4
         {
@@ -146,12 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function animateText(element, text, callback) {
         let i = 0;
         element.textContent = "";
-        const typing = setInterval(() => {
+        const typingInterval = setInterval(() => {
             if (i < text.length) {
                 element.textContent += text.charAt(i);
                 i++;
             } else {
-                clearInterval(typing);
+                clearInterval(typingInterval);
                 if (callback) callback();
             }
         }, 30);
@@ -162,8 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.activeGameListeners.forEach(({target, type, handler}) => {
                 target.removeEventListener(type, handler);
             });
-            window.activeGameListeners = [];
         }
+        window.activeGameListeners = [];
     }
 
     function loadLevel(levelData) {
@@ -508,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         highscoreList.innerHTML = ''; top5.forEach(entry => { const li = document.createElement('li'); li.textContent = `${entry.name} - ${entry.score} punten`; highscoreList.appendChild(li); });
     }
     
-    function restartGame() { currentLevelIndex = -1; showScreen('intro'); animateText(introTextElement, storyIntro, () => { agentNameInput.style.display = 'block'; startButton.style.display = 'block'; }); }
+    function restartGame() { currentLevelIndex = -1; showScreen('intro'); agentNameInput.style.display='none'; startButton.style.display='none'; animateText(introTextElement, storyIntro, () => { agentNameInput.style.display = 'block'; startButton.style.display = 'block'; }); }
 
     // --- CANVAS MINIGAME FUNCTIES --- //
     
@@ -586,12 +586,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function initAmplitudeComparison(parentElement) {
         const canvas = document.createElement('canvas'); canvas.className = 'level-canvas'; canvas.width = 500; canvas.height = 300; parentElement.insertBefore(canvas, parentElement.firstChild);
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height, divSize = width / 10; let offset = 0;
-        let localAnimId = null;
-        function drawWave(label, freq, amp, color, lineDash = []) {
-            ctx.beginPath(); ctx.setLineDash(lineDash);
+        
+        function drawWave(label, freq, amp, color) {
+            ctx.beginPath(); 
             ctx.strokeStyle = color; ctx.lineWidth = 2; const centerY = height / 2, amplitude = amp;
             for(let x=0; x < width; x++) { const angle = ((x + offset*freq) / (50/freq)) * 2 * Math.PI; const y = centerY - Math.sin(angle) * amplitude; if(x===0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
-            ctx.stroke(); ctx.setLineDash([]);
+            ctx.stroke(); 
             ctx.font = "20px Roboto Mono"; ctx.fillStyle = color; ctx.fillText(label, 10, centerY - amp - 10);
         }
         function animate() {
@@ -599,8 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawWave('P', 1, 60, '#32CD32'); 
             drawWave('Q', 2, 100, '#FFD700');
             offset++; 
-            localAnimId = requestAnimationFrame(animate);
-            activeGameLoopId = localAnimId;
+            activeGameLoopId = requestAnimationFrame(animate);
         }
         animate();
     }
@@ -611,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         const controlsContainer = document.getElementById('freq-controls');
 
-        let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false, mousePos = {x:0, y:0};
+        let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false;
         let targetWave = {}, playerWave = {}, clickWaves = [];
         
         const roundData = [
@@ -628,6 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         function setupRound() {
+            cleanupListeners();
             if (round > totalRounds) return;
             controlsContainer.innerHTML = '';
             infoPanelContent.innerHTML = '';
@@ -642,37 +642,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('freq-down-btn').onclick = () => { if(playerWave.divs < 20) playerWave.divs++; };
                 document.getElementById('freq-up-btn').onclick = () => { if(playerWave.divs > 1) playerWave.divs--; };
                 document.getElementById('confirm-freq-btn').onclick = checkMatch;
-            } else { // 'click' round
-                stat3.textContent = `Klik op de ${data.targetFreqHz} Hz golf.`;
+            } else { 
+                stat3.textContent = `Klik op de knop naast de ${data.targetFreqHz} Hz golf.`;
+                controlsContainer.innerHTML = ''; // Clear old buttons
                 clickWaves = [
-                    { divs: 20, y: height * 0.2, amp: 50 }, // T = 40ms, f = 25Hz
-                    { divs: 10, y: height * 0.5, amp: 50 }, // T = 20ms, f = 50Hz
-                    { divs: 5, y: height * 0.8, amp: 50 }   // T = 10ms, f = 100Hz
+                    { divs: 20, y: height * 0.2, amp: 50, buttonY: height * 0.2},
+                    { divs: 10, y: height * 0.5, amp: 50, buttonY: height * 0.5},
+                    { divs: 5, y: height * 0.8, amp: 50, buttonY: height * 0.8}
                 ];
-                clickWaves.forEach(w => w.isTarget = (Math.round(1 / (w.divs * data.timebase * 0.001)) === data.targetFreqHz));
-                const clickHandler = (e) => { const rect = canvas.getBoundingClientRect(), y = e.clientY - rect.top; clickWaves.forEach(wave => { if (y > wave.y - wave.amp && y < wave.y + wave.amp) checkClick(wave.isTarget); }); };
-                const moveHandler = (e) => { const rect = canvas.getBoundingClientRect(); mousePos.y = e.clientY - rect.top; clickWaves.forEach(wave => wave.hover = (mousePos.y > wave.y - wave.amp && mousePos.y < wave.y + wave.amp));};
-                canvas.addEventListener('click', clickHandler);
-                canvas.addEventListener('mousemove', moveHandler);
-                window.activeGameListeners.push({target: canvas, type: 'click', handler: clickHandler}, {target: canvas, type: 'mousemove', handler: moveHandler});
+                clickWaves.forEach((w, i) => {
+                    w.isTarget = (Math.round(1 / (w.divs * data.timebase * 0.001)) === data.targetFreqHz);
+                    const btn = document.createElement('button');
+                    btn.textContent = 'Selecteer';
+                    btn.className = 'btn';
+                    btn.style.position = 'absolute';
+                    btn.style.left = '20px'; // Position inside the game-container
+                    btn.style.top = `${w.buttonY - 15}px`;
+                    btn.onclick = () => checkClick(w.isTarget);
+                    controlsContainer.appendChild(btn);
+                });
             }
         }
 
         function nextRound() {
             round++;
             if (round > totalRounds) { if(!gameEnded) { gameEnded = true; onComplete(score, "Alle signalen verwerkt!", 'correct'); }} 
-            else { stat3.textContent = 'Volgende ronde...'; setTimeout(setupRound, 1500); }
+            else { showFeedback("Volgende ronde...", "correct"); setTimeout(setupRound, 1500); }
         }
 
         function checkMatch() { 
             const isCorrect = (playerWave.divs === targetWave.divs);
-            if(isCorrect) { score += 100; stat3.textContent = 'Correct! Punten verdiend.'; } else { stat3.textContent = 'Fout. Geen punten voor deze ronde.'; }
+            if(isCorrect) { score += 100; showFeedback('Correct! +100 punten.', 'correct'); } else { showFeedback('Fout. Geen punten voor deze ronde.', 'incorrect'); }
             controlsContainer.innerHTML = '';
             setTimeout(nextRound, 1500);
         }
         function checkClick(isCorrect) { 
             cleanupListeners();
-            if(isCorrect) { score += 150; stat3.textContent = 'Correct! Punten verdiend.'; } else { stat3.textContent = 'Fout signaal geselecteerd.'; }
+            controlsContainer.innerHTML = '';
+            if(isCorrect) { score += 150; showFeedback('Correct! +150 punten.', 'correct'); } else { showFeedback('Fout signaal geselecteerd.', 'incorrect'); }
             setTimeout(nextRound, 1500);
         }
 
@@ -686,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const playerFreq = Math.round(1 / (playerWave.divs * data.timebase * 0.001));
                 stat2.textContent = `Jouw golf: ${playerFreq} Hz`; stat3.textContent = ``;
             } else {
-                clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)', w.hover ? 6 : 4));
+                clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)', 4));
                 stat2.textContent = '';
             }
             stat1.textContent = `Ronde: ${round}/${totalRounds}`;
@@ -695,97 +702,106 @@ document.addEventListener('DOMContentLoaded', () => {
         setupRound(); gameLoop();
     }
     
-    function initJammerGame(canvas, onComplete) {
+    function initMixerGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
+        let gameTime = 30, score = 0, gameEnded = false;
         
-        const hq = {x: width - 50, y: height / 2, radius: 20};
-        const silentBase = {x: 20, y: height / 2, radius: 20};
-        const towerSlots = [{x: 200, y: 100}, {x: 400, y: 250}, {x: 200, y: 400}];
-        
-        let jammers = [], dataPackets = [], packetsDestroyed = 0, lives = 3, wave = 0, maxWaves = 5;
-        let jammersToPlace = 3, spawnTimer = 0, gameEnded = false;
+        const channels = [];
+        const channelCount = 5;
+        const channelWidth = width / (channelCount + 2);
 
-        function distance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
+        for (let i=0; i < channelCount; i++) {
+            channels.push({
+                x: (i + 1) * channelWidth,
+                y: height - 50,
+                width: 40,
+                height: 250,
+                level: 0,
+                isFeedback: Math.random() < 0.5,
+                muted: false
+            });
+        }
         
+        let masterLevel = 0;
+        let timeInRed = 0;
+
         const clickHandler = (e) => {
-            if(jammersToPlace <= 0) return;
             const rect = canvas.getBoundingClientRect(), mouseX = e.clientX-rect.left, mouseY = e.clientY-rect.top;
-            towerSlots.forEach(slot => {
-                if(distance({x:mouseX, y:mouseY}, slot) < 20 && !slot.occupied) {
-                    slot.occupied = true;
-                    jammers.push({x: slot.x, y: slot.y, radius: 80, fireRate: 60, fireTimer: 0});
-                    jammersToPlace--;
+            channels.forEach(ch => {
+                if(mouseX > ch.x && mouseX < ch.x + ch.width && mouseY > ch.y-ch.height && mouseY < ch.y) {
+                    if (ch.isFeedback) {
+                        ch.muted = true;
+                        score += 50;
+                    } else {
+                        score -= 25; // Penalty for muting good channels
+                    }
                 }
             });
         };
         canvas.addEventListener('click', clickHandler);
         window.activeGameListeners.push({target: canvas, type: 'click', handler: clickHandler});
 
+
         function update() {
-            if(jammersToPlace > 0) return; 
-
-            spawnTimer++;
-            if (spawnTimer > 120 && wave < maxWaves) {
-                spawnTimer = 0; wave++;
-                for(let i=0; i<wave * 2; i++) { 
-                    dataPackets.push({ x: silentBase.x, y: silentBase.y, speed: 1 + Math.random(), radius: 8, health: 100 });
-                }
-            }
-
-            dataPackets.forEach((packet, p_index) => {
-                const angle = Math.atan2(hq.y - packet.y, hq.x - packet.x);
-                packet.x += Math.cos(angle) * packet.speed;
-                packet.y += Math.sin(angle) * packet.speed;
-
-                if (distance(packet, hq) < packet.radius) {
-                    lives--;
-                    dataPackets.splice(p_index, 1);
-                    return;
-                }
-                
-                jammers.forEach(jammer => {
-                    if (distance(packet, jammer) < jammer.radius) {
-                        packet.health -= 2;
+            masterLevel = 0;
+            channels.forEach(ch => {
+                if (!ch.muted) {
+                    if (ch.isFeedback) {
+                        ch.level += (Math.random() - 0.4) * 20; // Prone to spike
+                    } else {
+                        ch.level += (Math.random() - 0.5) * 10; // More stable
                     }
-                });
-
-                if(packet.health <= 0) {
-                    dataPackets.splice(p_index, 1);
-                    packetsDestroyed++;
+                    ch.level = Math.max(0, Math.min(ch.height, ch.level));
+                    masterLevel += ch.level;
+                } else {
+                    ch.level *= 0.9; // Fade out when muted
                 }
             });
-
-            if ((lives <= 0 || (wave === maxWaves && dataPackets.length === 0)) && !gameEnded) {
+            masterLevel /= channels.length;
+            
+            if (masterLevel > 200) timeInRed++; else timeInRed = Math.max(0, timeInRed - 1);
+            if (timeInRed > 180) { // 3 seconds in red
                 gameEnded = true;
-                let score = packetsDestroyed * 20 + lives * 50;
-                let message = lives > 0 ? "Alle datastromen gestopt! Netwerk veilig." : "Te veel data doorgelaten! Missie gefaald.";
-                onComplete(score, message, lives > 0 ? 'correct' : 'incorrect');
+                onComplete(score, 'Te luid! De versterkers zijn doorgebrand.', 'incorrect');
             }
         }
         
         function draw() {
-            ctx.fillStyle = '#013220'; ctx.fillRect(0, 0, width, height);
-            ctx.strokeStyle = "rgba(0, 255, 0, 0.1)"; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(silentBase.x, silentBase.y); ctx.lineTo(towerSlots[0].x, towerSlots[0].y); ctx.lineTo(towerSlots[1].x, towerSlots[1].y); ctx.lineTo(hq.x, hq.y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(silentBase.x, silentBase.y); ctx.lineTo(towerSlots[2].x, towerSlots[2].y); ctx.lineTo(towerSlots[1].x, towerSlots[1].y); ctx.stroke();
+            ctx.fillStyle = '#1E1E1E'; ctx.fillRect(0, 0, width, height);
+            channels.forEach(ch => {
+                ctx.fillStyle = '#333'; ctx.fillRect(ch.x, ch.y - ch.height, ch.width, ch.height);
+                const gradient = ctx.createLinearGradient(ch.x, ch.y, ch.x, ch.y-ch.height);
+                gradient.addColorStop(0, '#0f0');
+                gradient.addColorStop(0.7, '#ff0');
+                gradient.addColorStop(1, '#f00');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(ch.x, ch.y, ch.width, -ch.level);
+                ctx.font = '16px Roboto Mono';
+                ctx.fillStyle = ch.isFeedback ? '#ff4d4d' : 'var(--accent-lime-green)';
+                ctx.fillText(ch.isFeedback ? 'FEEDBACK' : 'BAND', ch.x, ch.y + 20);
+                if (ch.muted) { ctx.fillStyle = "white"; ctx.fillText("MUTED", ch.x, ch.y-ch.height/2);}
+            });
 
-            ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(silentBase.x, silentBase.y, silentBase.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("SILENT", silentBase.x-25, silentBase.y+30);
-            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(hq.x, hq.y, hq.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("HQ", hq.x-10, hq.y+30);
-
-            towerSlots.forEach(slot => { ctx.strokeStyle = 'yellow'; ctx.lineWidth = slot.occupied ? 1 : 3; ctx.beginPath(); ctx.arc(slot.x, slot.y, 20, 0, 2*Math.PI); ctx.stroke(); });
-            jammers.forEach(jammer => { ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(jammer.x, jammer.y, 15, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'rgba(255, 255, 0, 0.1)'; ctx.beginPath(); ctx.arc(jammer.x, jammer.y, jammer.radius, 0, 2*Math.PI); ctx.fill(); });
-            dataPackets.forEach(packet => { ctx.fillStyle = `rgba(255, 0, 100, ${packet.health/100})`; ctx.beginPath(); ctx.arc(packet.x, packet.y, packet.radius, 0, 2*Math.PI); ctx.fill(); });
-            
-            stat1.textContent = `Levens: ${lives}`;
-            stat2.textContent = `Data vernietigd: ${packetsDestroyed}`;
-            stat3.textContent = jammersToPlace > 0 ? `Plaats nog ${jammersToPlace} stoorzender(s)` : `Golf ${wave}/${maxWaves}`;
+            // Master channel
+            ctx.fillStyle = '#333'; ctx.fillRect(width-channelWidth, height-50-250, 40, 250);
+            const masterGradient = ctx.createLinearGradient(0, height-50, 0, height-50-250);
+            masterGradient.addColorStop(0, '#0f0'); masterGradient.addColorStop(0.7, '#ff0'); masterGradient.addColorStop(1, '#f00');
+            ctx.fillStyle = masterGradient; ctx.fillRect(width-channelWidth, height-50, 40, -masterLevel);
+            ctx.font = '16px Roboto Mono'; ctx.fillStyle = 'white'; ctx.fillText('MASTER', width-channelWidth, height-20);
         }
         
-        function gameLoop() { 
+        const timerId = setInterval(()=> { if(!gameEnded) gameTime--}, 1000);
+
+        function gameLoop() {
             if(gameEnded) return;
-            update(); draw(); 
-            activeGameLoopId = requestAnimationFrame(gameLoop); 
+            update(); draw();
+            stat1.textContent = `Score: ${score}`; stat2.textContent = `Tijd Over: ${gameTime}`;
+            if(gameTime <= 0) {
+                gameEnded = true;
+                onComplete(score, 'Goed gemixt! Het evenement was een succes.', 'correct');
+            }
+            activeGameLoopId = requestAnimationFrame(gameLoop);
         }
         gameLoop();
     }
@@ -796,8 +812,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let player = {x: 50, y: height/2, width: 20, height: 40, speed: 10};
         let objects = [], damage = 0, maxDamage = 100, itemsCollected = 0, spawnTimer = 0, gameTime = 20, timerId, gameEnded = false;
         
-        let keys = {}, keydownHandler = (e) => keys[e.code] = true, keyupHandler = (e) => delete keys[e.code];
-        window.addEventListener('keydown', keydownHandler); window.addEventListener('keyup', keyupHandler);
+        let keys = {};
+        const keydownHandler = (e) => keys[e.code] = true;
+        const keyupHandler = (e) => delete keys[e.code];
         window.activeGameListeners.push({target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler});
 
 
