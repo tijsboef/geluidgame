@@ -253,69 +253,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return container;
     }
 
-     function createMinigameInputElement(minigameData) {
+    function createMinigameInputElement(minigameData) {
         const container = document.createElement('div');
         container.className = 'question-container task-container';
-        
-        let contentHTML = `<h3>${minigameData.title}</h3>`;
-        // De omschrijving wordt nu ook getoond als die bestaat
-        if(minigameData.description){
-             contentHTML += `<p>${minigameData.description}</p>`;
-        }
-        
-        if(minigameData.init) {
-             contentHTML += `<canvas id="minigame-canvas" class="level-canvas" width="500" height="300"></canvas>`;
-        }
-        container.innerHTML = contentHTML;
 
-        const interactionContainer = document.createElement('div');
-        interactionContainer.className = "interaction-container";
-        
-        if(minigameData.intermediateQuestion) {
-            const intermediateGroup = document.createElement('div');
-            intermediateGroup.innerHTML = `<p><strong>${minigameData.intermediateQuestion}</strong></p>`;
-            const intermediateInput = document.createElement('input');
-            intermediateInput.type = 'text';
-            intermediateInput.id = 'minigame-intermediate-input';
-            intermediateInput.setAttribute('placeholder', 'Antwoord 1...');
-            intermediateGroup.appendChild(intermediateInput);
-            interactionContainer.appendChild(intermediateGroup);
+        let headerHTML = `<h3>${minigameData.title}</h3>`;
+        if (minigameData.description) {
+            headerHTML += `<p>${minigameData.description}</p>`;
         }
-
-        if (minigameData.question) {
-            const mainGroup = document.createElement('div');
-            mainGroup.innerHTML = `<p><strong>${minigameData.question}</strong></p>`;
-             const mainInput = document.createElement('input');
-            mainInput.type = 'text';
-            mainInput.id = 'minigame-input';
-            mainInput.setAttribute('placeholder', minigameData.intermediateQuestion ? 'Antwoord 2...' : 'Jouw antwoord...');
-            mainGroup.appendChild(mainInput);
-            interactionContainer.appendChild(mainGroup);
+        if (minigameData.init && minigameData.type !== 'drag_drop') {
+            headerHTML += `<canvas id="minigame-canvas" class="level-canvas" width="500" height="300"></canvas>`;
         }
-        
-        container.appendChild(interactionContainer);
-
-
-        if (minigameData.hint) {
-            const hintBtn = document.createElement('button');
-            hintBtn.textContent = "Hint (-100 punten)";
-            hintBtn.className = 'btn hint-btn';
-            hintBtn.onclick = () => {
-                updateScore(-100);
-                showFeedback(minigameData.hint, 'incorrect');
-                hintBtn.disabled = true;
-                hintBtn.style.opacity = '0.5';
-            };
-            container.appendChild(hintBtn);
-        }
+        container.innerHTML = headerHTML;
 
         if (minigameData.type === 'drag_drop') {
-            container.querySelector('.interaction-container')?.remove(); // Verwijder de standaard input velden
-            
-            // FIX: Voeg de vraag hier expliciet toe
-            const questionParagraph = document.createElement('p');
-            questionParagraph.innerHTML = `<strong>${minigameData.question}</strong>`;
-            container.appendChild(questionParagraph);
+            const questionP = document.createElement('p');
+            questionP.innerHTML = `<strong>${minigameData.question}</strong>`;
+            container.appendChild(questionP);
 
             const ddContainer = document.createElement('div');
             ddContainer.className = 'drag-drop-container';
@@ -327,23 +281,113 @@ document.addEventListener('DOMContentLoaded', () => {
             minigameData.categories.forEach(cat => { const zone = document.createElement('div'); zone.className = 'drop-zone'; zone.dataset.category = cat; zone.innerHTML = `<h5>${cat}</h5>`; dropZones.appendChild(zone); });
             minigameData.items.forEach((item, index) => { const el = document.createElement('div'); el.className = 'draggable'; el.textContent = item.text; el.draggable = true; el.id = `drag-${index}`; el.dataset.answer = item.answer; itemsPool.appendChild(el); });
             ddContainer.appendChild(itemsPool); ddContainer.appendChild(dropZones); container.appendChild(ddContainer);
-            const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'Controleer Plaatsing'; btn.onclick = () => checkDragDropAnswer(ddContainer, container); container.appendChild(btn);
+            
+            const btn = document.createElement('button'); 
+            btn.className = 'btn'; 
+            btn.textContent = 'Controleer Plaatsing'; 
+            btn.style.marginTop = '15px';
+            btn.onclick = () => checkDragDropAnswer(ddContainer, container); 
+            container.appendChild(btn);
+            
             setTimeout(() => {
                 const draggables = container.querySelectorAll('.draggable'), zones = container.querySelectorAll('.drop-zone');
                 draggables.forEach(draggable => { draggable.addEventListener('dragstart', () => draggable.classList.add('dragging')); draggable.addEventListener('dragend', () => draggable.classList.remove('dragging')); });
                 zones.forEach(zone => { zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('hover'); }); zone.addEventListener('dragleave', () => zone.classList.remove('hover')); zone.addEventListener('drop', e => { e.preventDefault(); const draggable = document.querySelector('.dragging'); zone.appendChild(draggable); zone.classList.remove('hover'); }); });
             }, 0);
-        } else if (minigameData.options) {
-             container.querySelector('.interaction-container')?.remove();
-              const optionsContainer = document.createElement('div');
-            optionsContainer.className = 'options-container';
-             minigameData.options.forEach(optionText => { const optionEl = document.createElement('div'); optionEl.className = 'option'; optionEl.textContent = optionText; optionEl.addEventListener('click', () => checkAnswer(optionEl, minigameData.answer, container)); optionsContainer.appendChild(optionEl); });
-            container.appendChild(optionsContainer);
-        } else {
-            const button = document.createElement('button'); button.className = 'btn'; button.textContent = 'Controleer Antwoord'; button.addEventListener('click', () => checkAnalysisAnswer(container, minigameData)); container.appendChild(button);
+            return container;
         }
         
-        if (typeof minigameData.init === 'function') { setTimeout(() => { const canvas = document.getElementById('minigame-canvas'); if(canvas) minigameData.init(canvas); }, 0); }
+        if (minigameData.options) {
+            const questionP = document.createElement('p');
+            questionP.innerHTML = `<strong>${minigameData.question}</strong>`;
+            container.appendChild(questionP);
+
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'options-container';
+            minigameData.options.forEach(optionText => { 
+                const optionEl = document.createElement('div'); 
+                optionEl.className = 'option'; 
+                optionEl.textContent = optionText; 
+                optionEl.addEventListener('click', () => checkAnswer(optionEl, minigameData.answer, container)); 
+                optionsContainer.appendChild(optionEl); 
+            });
+            container.appendChild(optionsContainer);
+            return container;
+        }
+
+        if (minigameData.intermediateQuestion) {
+            const iQuestionWrapper = document.createElement('div');
+            iQuestionWrapper.style.marginTop = '15px';
+            iQuestionWrapper.innerHTML = `<p><strong>${minigameData.intermediateQuestion}</strong></p>`;
+            container.appendChild(iQuestionWrapper);
+
+            const iAnswerWrapper = document.createElement('div');
+            iAnswerWrapper.style.marginTop = '5px';
+            const intermediateInput = document.createElement('input');
+            intermediateInput.type = 'text';
+            intermediateInput.id = 'minigame-intermediate-input';
+            intermediateInput.setAttribute('placeholder', 'Antwoord 1...');
+            iAnswerWrapper.appendChild(intermediateInput);
+            container.appendChild(iAnswerWrapper);
+        }
+        
+        if (minigameData.question) {
+            const questionWrapper = document.createElement('div');
+            questionWrapper.style.display = 'flex';
+            questionWrapper.style.justifyContent = 'space-between';
+            questionWrapper.style.alignItems = 'center';
+            questionWrapper.style.gap = '15px';
+            questionWrapper.style.marginTop = '15px';
+
+            const questionP = document.createElement('p');
+            questionP.innerHTML = `<strong>${minigameData.question}</strong>`;
+            questionWrapper.appendChild(questionP);
+
+            if (minigameData.hint) {
+                const hintBtn = document.createElement('button');
+                hintBtn.textContent = "Hint";
+                hintBtn.title = `Hint (-100 punten)`;
+                hintBtn.className = 'btn hint-btn';
+                hintBtn.style.flexShrink = '0';
+                hintBtn.onclick = () => {
+                    updateScore(-100);
+                    showFeedback(minigameData.hint, 'incorrect');
+                    hintBtn.disabled = true;
+                    hintBtn.style.opacity = '0.5';
+                };
+                questionWrapper.appendChild(hintBtn);
+            }
+            container.appendChild(questionWrapper);
+        }
+
+        const answerWrapper = document.createElement('div');
+        answerWrapper.style.display = 'flex';
+        answerWrapper.style.alignItems = 'center';
+        answerWrapper.style.gap = '10px';
+        answerWrapper.style.marginTop = '10px';
+
+        const mainInput = document.createElement('input');
+        mainInput.type = 'text';
+        mainInput.id = 'minigame-input';
+        mainInput.setAttribute('placeholder', 'Jouw antwoord...');
+        mainInput.style.flexGrow = '1';
+        answerWrapper.appendChild(mainInput);
+
+        const button = document.createElement('button');
+        button.className = 'btn';
+        button.textContent = 'Check';
+        button.addEventListener('click', () => checkAnalysisAnswer(container, minigameData));
+        answerWrapper.appendChild(button);
+        
+        container.appendChild(answerWrapper);
+
+        if (typeof minigameData.init === 'function') {
+            setTimeout(() => { 
+                const canvas = document.getElementById('minigame-canvas'); 
+                if(canvas) minigameData.init(canvas); 
+            }, 0); 
+        }
+        
         return container;
     }
     
@@ -351,24 +395,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.createElement('div');
         container.className = 'question-container task-container';
 
-        // Main wrapper voor de hele game-interface
         const gameInterfaceWrapper = document.createElement('div');
 
         const descriptionElement = document.createElement('p');
         descriptionElement.textContent = levelData.description;
         gameInterfaceWrapper.appendChild(descriptionElement);
 
-        // Wrapper voor canvas en eventuele zijknoppen
         const gameAreaWrapper = document.createElement('div');
         gameAreaWrapper.className = 'game-area-wrapper';
         gameAreaWrapper.style.display = 'flex';
-        gameAreaWrapper.style.alignItems = 'center'; // Center vertically
-        gameAreaWrapper.style.gap = '10px';
+        gameAreaWrapper.style.alignItems = 'center'; 
+        gameAreaWrapper.style.gap = '20px'; // Space between canvas and info panel
         gameAreaWrapper.style.justifyContent = 'center';
         
         const canvasContainer = document.createElement('div');
         canvasContainer.id = 'canvas-container';
-        canvasContainer.style.position = 'relative'; // Essentieel voor absolute positionering van de knoppen
+        canvasContainer.style.position = 'relative'; 
+        canvasContainer.style.flexShrink = '0';
         
         const canvas = document.createElement('canvas');
         canvas.id = 'minigame-canvas';
@@ -378,28 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.style.maxWidth = '100%';
         canvasContainer.appendChild(canvas);
 
-        // Voeg de canvas container toe aan de game area
         gameAreaWrapper.appendChild(canvasContainer);
-        gameInterfaceWrapper.appendChild(gameAreaWrapper);
         
-        // Bottom sectie voor stats en info
-        const bottomSection = document.createElement('div');
-        bottomSection.style.display = 'flex';
-        bottomSection.style.justifyContent = 'space-between';
-        bottomSection.style.alignItems = 'flex-start';
-        bottomSection.style.marginTop = '15px';
-        bottomSection.style.flexWrap = 'wrap';
-        bottomSection.style.gap = '15px';
-
-
-        const statsContainer = document.createElement('div');
-        statsContainer.id = 'game-stats';
-        statsContainer.style.padding = '10px';
-        statsContainer.style.background = 'rgba(0,0,0,0.3)';
-        statsContainer.style.borderRadius = '5px';
-        statsContainer.innerHTML = `<span id="stat1"></span><span id="stat2"></span><span id="stat3" style="font-style: italic;"></span>`;
-        bottomSection.appendChild(statsContainer);
-
         if(levelData.init === initFrequencyMatchGame) {
             const infoPanel = document.createElement('div');
             infoPanel.id = 'info-panel';
@@ -409,12 +432,23 @@ document.addEventListener('DOMContentLoaded', () => {
             infoPanel.style.borderRadius = '8px';
             infoPanel.style.backgroundColor = 'rgba(0,20,0,0.5)';
             infoPanel.innerHTML = '<h4>SYSTEM INFO</h4><div id="info-panel-content"></div>';
-            bottomSection.appendChild(infoPanel);
+            gameAreaWrapper.appendChild(infoPanel);
         }
-        
-        gameInterfaceWrapper.appendChild(bottomSection);
 
-        // Controls gaan onderaan
+        gameInterfaceWrapper.appendChild(gameAreaWrapper);
+        
+        const statsContainer = document.createElement('div');
+        statsContainer.id = 'game-stats';
+        statsContainer.innerHTML = `
+            <h4>STATUSRAPPORT</h4>
+            <div class="stat-grid">
+                <span id="stat1"></span>
+                <span id="stat2"></span>
+            </div>
+            <div id="stat3" class="stat-message"></div>
+        `;
+        gameInterfaceWrapper.appendChild(statsContainer);
+
         const controls = document.createElement('div');
         controls.id = 'freq-controls';
         controls.style.textAlign = 'center';
@@ -731,7 +765,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         function setupRound() {
-            // Verwijder oude knoppen
             if (canvasContainer) {
                 canvasContainer.querySelectorAll('.select-wave-btn').forEach(btn => btn.remove());
             }
@@ -765,12 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const btn = document.createElement('button');
                     btn.textContent = '→';
                     btn.className = 'btn select-wave-btn';
-                    btn.style.fontSize = '1.5em';
-                    btn.style.padding = '0px 10px';
-                    btn.style.lineHeight = '1.2';
-                    btn.style.position = 'absolute';
-                    btn.style.left = '-50px';
-                    btn.style.top = `${w.buttonY - 18}px`;
+                    btn.style.top = `${w.buttonY}px`;
                     btn.onclick = () => checkClick(w.isTarget, btn);
                     if (canvasContainer) canvasContainer.appendChild(btn);
                 });
