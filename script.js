@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Training 3
         {
             title: "Trainingsmissie 3: Stoorzenders Plaatsen", type: 'minigame_only', init: initJammerGame,
-            description: "We moeten een belangrijke boodschap versturen, maar SILENT luistert mee. Sleep onze 3 stoorzenders uit het depot (links) naar strategische locaties op de kaart om het signaal bij de SILENT-basis te verzwakken tot onder de 20 dB."
+            description: "SILENT verstuurt datastromen naar hun HQ. Plaats 3 stoorzenders op de beschikbare torenlocaties (gele cirkels) om de datastromen te vernietigen voordat ze ons netwerk bereiken."
         },
         // Missie 4
         {
@@ -335,22 +335,41 @@ document.addEventListener('DOMContentLoaded', () => {
     function createStandaloneMinigameElement(levelData) {
         const container = document.createElement('div');
         container.className = 'question-container task-container';
-        container.innerHTML = `<p>${levelData.description}</p><canvas id="minigame-canvas" class="level-canvas" width="800" height="500"></canvas>`;
+        // Wrapper voor canvas en info paneel
+        const gameWrapper = document.createElement('div');
+        gameWrapper.style.display = 'flex';
+        gameWrapper.style.gap = '20px';
+
+        const canvasWrapper = document.createElement('div');
+        canvasWrapper.style.flexGrow = '1';
+        canvasWrapper.innerHTML = `<p>${levelData.description}</p><canvas id="minigame-canvas" class="level-canvas" width="800" height="500"></canvas>`;
         
         const statsContainer = document.createElement('div');
         statsContainer.id = 'game-stats';
         statsContainer.style.display = 'flex';
+        statsContainer.style.flexDirection = 'column'; // Maak het verticaal
         statsContainer.style.justifyContent = 'space-between';
         statsContainer.style.padding = '10px';
         statsContainer.style.background = 'rgba(0,0,0,0.3)';
         statsContainer.style.borderRadius = '5px';
         statsContainer.style.marginTop = '10px';
-        
         statsContainer.innerHTML = `<span id="stat1"></span><span id="stat2"></span><span id="stat3" style="font-style: italic;"></span>`;
         
-        container.appendChild(statsContainer);
+        canvasWrapper.appendChild(statsContainer);
+        gameWrapper.appendChild(canvasWrapper);
+        container.appendChild(gameWrapper);
 
         if(levelData.init === initFrequencyMatchGame) {
+            const infoPanel = document.createElement('div');
+            infoPanel.id = 'info-panel';
+            infoPanel.style.width = '200px';
+            infoPanel.style.padding = '10px';
+            infoPanel.style.border = '1px solid var(--accent-lime-green)';
+            infoPanel.style.borderRadius = '8px';
+            infoPanel.style.backgroundColor = 'rgba(0,20,0,0.5)';
+            infoPanel.innerHTML = '<h4>SYSTEM INFO</h4><div id="info-panel-content"></div>';
+            gameWrapper.appendChild(infoPanel);
+
             const controls = document.createElement('div');
             controls.id = 'freq-controls';
             controls.style.textAlign = 'center';
@@ -491,9 +510,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Strategische plaatsing
         rocks.push({ x: width * 0.5 - 75, y: height * 0.4, width: 150, height: 60, found: false });
+        rocks.push({ x: width * 0.1, y: height * 0.7, width: 100, height: 50, found: false });
         drones.push({ x: width * 0.5 - 30, y: height * 0.6, width: 60, height: 15, found: false }); // Achter de rots
-        drones.push({ x: width * 0.15, y: height * 0.8, width: 60, height: 15, found: false });
-        drones.push({ x: width * 0.8, y: height * 0.7, width: 60, height: 15, found: false });
+        drones.push({ x: width * 0.15, y: height * 0.9, width: 60, height: 15, found: false }); // Achter een andere rots
+        drones.push({ x: width * 0.8, y: height * 0.7, width: 60, height: 15, found: false }); // Vrijstaand
 
         let keys = {}, keydownHandler = (e) => keys[e.code] = true, keyupHandler = (e) => { if (e.code === 'Space') firePing(); delete keys[e.code]; };
         window.addEventListener('keydown', keydownHandler); window.addEventListener('keyup', keyupHandler);
@@ -546,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.font = "20px Roboto Mono"; ctx.fillStyle = color; ctx.fillText(label, 10, centerY - amp - 10);
         }
         function animate() {
+            if(!animationFrameId) return; // Stop if new level is loaded
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
             drawWave('P', 1, 60, '#32CD32'); 
             drawWave('Q', 2, 100, '#FFD700');
@@ -556,12 +577,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function initFrequencyMatchGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height, divSize = width/20;
+        const infoPanelContent = document.getElementById('info-panel-content');
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         const controlsContainer = document.getElementById('freq-controls');
 
-        let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false;
+        let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false, mousePos = {x:0, y:0};
         let targetWave = {}, playerWave = {}, clickWaves = [];
-        let clickHandler;
+        let clickHandler, moveHandler;
         
         const roundData = [
             { type: 'match', timebase: 10, targetFreqDivs: 4 }, // 1 / (4 * 10ms) = 25 Hz
@@ -569,8 +591,8 @@ document.addEventListener('DOMContentLoaded', () => {
             { type: 'click', timebase: 2, targetFreqHz: 50 }    // T = 1/50 = 20ms. Tijd/div = 2ms => 10 divs
         ];
         
-        function drawWave(wave, color) {
-            ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath();
+        function drawWave(wave, color, lineThickness) {
+            ctx.strokeStyle = color; ctx.lineWidth = lineThickness; ctx.beginPath();
             const centerY = wave.y, amplitude = wave.amp, waveLength = divSize * wave.divs;
             for(let x=0; x < width; x++) { const angle = (x / waveLength) * 2 * Math.PI; const yPos = centerY - Math.sin(angle) * amplitude; if(x===0) ctx.moveTo(x, yPos); else ctx.lineTo(x, yPos); }
             ctx.stroke();
@@ -579,53 +601,49 @@ document.addEventListener('DOMContentLoaded', () => {
         function setupRound() {
             if (round > totalRounds) return;
             controlsContainer.innerHTML = '';
+            infoPanelContent.innerHTML = '';
             const data = roundData[round-1];
             currentRoundType = data.type;
+            infoPanelContent.innerHTML = `<p>Timebase: <br><span style="color:var(--accent-lime-green);">${data.timebase} ms/div</span></p>`;
 
             if (currentRoundType === 'match') {
                 targetWave = { divs: data.targetFreqDivs, y: height * 0.25, amp: 60 };
                 playerWave = { divs: 10, y: height * 0.75, amp: 60 };
-                controlsContainer.innerHTML = `<button id="freq-down-btn" class="btn">- Divs</button> <button id="freq-up-btn" class="btn">+ Divs</button> <button id="confirm-freq-btn" class="btn">Bevestig</button>`;
+                controlsContainer.innerHTML = `<button id="freq-down-btn" class="btn">- Freq</button> <button id="freq-up-btn" class="btn">+ Freq</button> <button id="confirm-freq-btn" class="btn">Bevestig</button>`;
                 document.getElementById('freq-down-btn').onclick = () => { if(playerWave.divs < 20) playerWave.divs++; };
                 document.getElementById('freq-up-btn').onclick = () => { if(playerWave.divs > 1) playerWave.divs--; };
                 document.getElementById('confirm-freq-btn').onclick = checkMatch;
             } else { // 'click' round
-                stat3.textContent = `Tijdbasis: ${data.timebase} ms/div. Klik op de ${data.targetFreqHz} Hz golf.`;
+                stat3.textContent = `Klik op de ${data.targetFreqHz} Hz golf.`;
                 clickWaves = [
                     { divs: 20, y: height * 0.2, amp: 50 }, // T = 40ms, f = 25Hz
                     { divs: 10, y: height * 0.5, amp: 50 }, // T = 20ms, f = 50Hz
                     { divs: 5, y: height * 0.8, amp: 50 }   // T = 10ms, f = 100Hz
                 ];
-                clickWaves.forEach(w => w.isTarget = (1 / (w.divs * data.timebase * 0.001) === data.targetFreqHz));
-                clickHandler = (e) => {
-                    const rect = canvas.getBoundingClientRect(), x = e.clientX-rect.left, y = e.clientY-rect.top;
-                    clickWaves.forEach(wave => { if (y > wave.y - wave.amp && y < wave.y + wave.amp) checkClick(wave.isTarget); });
-                };
+                clickWaves.forEach(w => w.isTarget = (Math.round(1 / (w.divs * data.timebase * 0.001)) === data.targetFreqHz));
+                clickHandler = (e) => { const rect = canvas.getBoundingClientRect(), x = e.clientX-rect.left, y = e.clientY-rect.top; clickWaves.forEach(wave => { if (y > wave.y - wave.amp && y < wave.y + wave.amp) checkClick(wave.isTarget); }); };
+                moveHandler = (e) => { const rect = canvas.getBoundingClientRect(); mousePos.x = e.clientX-rect.left; mousePos.y = e.clientY-rect.top; clickWaves.forEach(wave => wave.hover = (mousePos.y > wave.y - wave.amp && mousePos.y < wave.y + wave.amp));};
                 canvas.addEventListener('click', clickHandler);
+                canvas.addEventListener('mousemove', moveHandler);
             }
         }
 
         function nextRound() {
             round++;
-            if (round > totalRounds) {
-                if(gameEnded) return;
-                gameEnded = true;
-                onComplete(score, "Alle signalen verwerkt!", 'correct'); 
-            } else { 
-                stat3.textContent = 'Volgende ronde...'; 
-                setTimeout(setupRound, 1500); 
-            }
+            if (round > totalRounds) { if(!gameEnded) { gameEnded = true; onComplete(score, "Alle signalen verwerkt!", 'correct'); }} 
+            else { stat3.textContent = 'Volgende ronde...'; setTimeout(setupRound, 1500); }
         }
 
         function checkMatch() { 
             const isCorrect = (playerWave.divs === targetWave.divs);
-            if(isCorrect) { score += 100; stat3.textContent = 'Correct!'; } else { stat3.textContent = 'Fout. Geen punten.'; }
-            nextRound();
+            if(isCorrect) { score += 100; stat3.textContent = 'Correct! Punten verdiend.'; } else { stat3.textContent = 'Fout. Geen punten voor deze ronde.'; }
+            controlsContainer.innerHTML = '';
+            setTimeout(nextRound, 1500);
         }
         function checkClick(isCorrect) { 
-            canvas.removeEventListener('click', clickHandler); 
-            if(isCorrect) { score += 150; stat3.textContent = 'Correct!'; } else { stat3.textContent = 'Fout signaal geselecteerd.'; }
-            nextRound();
+            canvas.removeEventListener('click', clickHandler); canvas.removeEventListener('mousemove', moveHandler);
+            if(isCorrect) { score += 150; stat3.textContent = 'Correct! Punten verdiend.'; } else { stat3.textContent = 'Fout signaal geselecteerd.'; }
+            setTimeout(nextRound, 1500);
         }
 
         function gameLoop() {
@@ -634,11 +652,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
             
             if(currentRoundType === 'match') {
-                drawWave(targetWave, 'var(--accent-lime-green)'); drawWave(playerWave, '#ff4d4d');
+                drawWave(targetWave, 'var(--accent-lime-green)', 3); drawWave(playerWave, '#ff4d4d', 3);
                 const playerFreq = Math.round(1 / (playerWave.divs * data.timebase * 0.001));
-                stat2.textContent = `Jouw golf: ${playerFreq} Hz`; stat3.textContent = `Tijdbasis: ${data.timebase} ms/div`;
+                stat2.textContent = `Jouw golf: ${playerFreq} Hz`; stat3.textContent = ``;
             } else {
-                clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)'));
+                clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)', w.hover ? 6 : 4));
                 stat2.textContent = '';
             }
             stat1.textContent = `Ronde: ${round}/${totalRounds}`;
@@ -650,92 +668,92 @@ document.addEventListener('DOMContentLoaded', () => {
     function initJammerGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
-        const poolWidth = 150;
         
-        let hq = {x: width - 50, y: height/2, radius: 20};
-        let silentBase = {x: poolWidth + 50, y: height/2, radius: 20, signal: 100};
-        let jammers = [
-            {id: 0, x: 75, y: 100, radius: 25, inPool: true}, 
-            {id: 1, x: 75, y: height/2, radius: 25, inPool: true}, 
-            {id: 2, x: 75, y: height - 100, radius: 25, inPool: true}
-        ];
-        let draggingJammerIdx = null, offsetX = 0, offsetY = 0;
-        let mapLines = [];
-
-        for(let i=0; i<10; i++) { mapLines.push({x1: poolWidth + Math.random()*(width-poolWidth), y1: 0, x2: poolWidth + Math.random()*(width-poolWidth), y2: height}); }
-        for(let i=0; i<6; i++) { mapLines.push({x1: poolWidth, y1: Math.random()*height, x2: width, y2: Math.random()*height}); }
+        const hq = {x: width - 50, y: height / 2, radius: 20};
+        const silentBase = {x: 20, y: height / 2, radius: 20};
+        const towerSlots = [{x: 200, y: 100}, {x: 400, y: 250}, {x: 200, y: 400}];
+        
+        let jammers = [], dataPackets = [], packetsDestroyed = 0, lives = 3, wave = 0, maxWaves = 5;
+        let jammersToPlace = 3, spawnTimer = 0;
 
         function distance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
-        function calculateSignal() {
-            let totalReduction = 0;
-            jammers.forEach(jammer => { if(!jammer.inPool) { let dist = distance(jammer, hq); totalReduction += 40000 / (dist < 1 ? 1 : dist); }});
-            silentBase.signal = Math.max(0, 100 - totalReduction);
-        }
+        
+        const clickHandler = (e) => {
+            if(jammersToPlace <= 0) return;
+            const rect = canvas.getBoundingClientRect(), mouseX = e.clientX-rect.left, mouseY = e.clientY-rect.top;
+            towerSlots.forEach(slot => {
+                if(distance({x:mouseX, y:mouseY}, slot) < 20 && !slot.occupied) {
+                    slot.occupied = true;
+                    jammers.push({x: slot.x, y: slot.y, radius: 80, fireRate: 60, fireTimer: 0});
+                    jammersToPlace--;
+                }
+            });
+        };
+        canvas.addEventListener('click', clickHandler);
 
-        const mousedown = (e) => {
-            const rect = canvas.getBoundingClientRect(), mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
-            for (let i = jammers.length - 1; i >= 0; i--) {
-                if (distance({x:mouseX,y:mouseY}, jammers[i]) < jammers[i].radius) {
-                    draggingJammerIdx = i;
-                    offsetX = mouseX - jammers[i].x;
-                    offsetY = mouseY - jammers[i].y;
-                    return;
+        function update() {
+            if(jammersToPlace > 0) return; // Wacht tot alle jammers geplaatst zijn
+
+            spawnTimer++;
+            if (spawnTimer > 120 && wave < maxWaves) {
+                spawnTimer = 0; wave++;
+                for(let i=0; i<wave * 2; i++) { // Meer packets per golf
+                    dataPackets.push({ x: silentBase.x, y: silentBase.y, speed: 1 + Math.random(), radius: 8, health: 100 });
                 }
             }
-        };
-        const mouseup = () => {
-            if(draggingJammerIdx !== null && jammers[draggingJammerIdx].x < poolWidth + jammers[draggingJammerIdx].radius) {
-                jammers[draggingJammerIdx].inPool = true;
-            }
-            draggingJammerIdx = null;
-        };
-        const mousemove = (e) => {
-            if(draggingJammerIdx === null) return;
-            const rect = canvas.getBoundingClientRect(), mouseX = e.clientX-rect.left, mouseY = e.clientY-rect.top;
-            jammers[draggingJammerIdx].x = mouseX - offsetX;
-            jammers[draggingJammerIdx].y = mouseY - offsetY;
-            jammers[draggingJammerIdx].inPool = false;
-        };
-        
-        function cleanup() {
-            canvas.removeEventListener('mousedown', mousedown); 
-            window.removeEventListener('mouseup', mouseup); 
-            window.removeEventListener('mousemove', mousemove);
-            if(animationFrameId) cancelAnimationFrame(animationFrameId);
-        }
 
-        canvas.addEventListener('mousedown', mousedown);
-        window.addEventListener('mouseup', mouseup);
-        window.addEventListener('mousemove', mousemove);
+            dataPackets.forEach((packet, p_index) => {
+                const angle = Math.atan2(hq.y - packet.y, hq.x - packet.x);
+                packet.x += Math.cos(angle) * packet.speed;
+                packet.y += Math.sin(angle) * packet.speed;
 
-        function draw() {
-            ctx.fillStyle = '#013220'; ctx.fillRect(0, 0, width, height); 
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"; ctx.lineWidth = 1;
-            mapLines.forEach(line => { ctx.beginPath(); ctx.moveTo(line.x1, line.y1); ctx.lineTo(line.x2, line.y2); ctx.stroke(); });
-            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(0, 0, poolWidth, height);
-            ctx.fillStyle = "white"; ctx.font="16px Roboto Mono"; ctx.fillText("DEPOT", 45, 30);
-            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(hq.x, hq.y, hq.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("HQ", hq.x-10, hq.y+5);
-            ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(silentBase.x, silentBase.y, silentBase.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("Base", silentBase.x-15, silentBase.y+5);
-            jammers.forEach(jammer => { 
-                ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(jammer.x, jammer.y, jammer.radius, 0, 2*Math.PI); ctx.fill(); 
-                ctx.fillStyle = 'black'; ctx.font="bold 20px Roboto Mono"; ctx.fillText("Z", jammer.x-6, jammer.y+7);
+                if (distance(packet, hq) < packet.radius) {
+                    lives--;
+                    dataPackets.splice(p_index, 1);
+                    return;
+                }
+                
+                jammers.forEach(jammer => {
+                    if (distance(packet, jammer) < jammer.radius) {
+                        packet.health -= 2;
+                    }
+                });
+
+                if(packet.health <= 0) {
+                    dataPackets.splice(p_index, 1);
+                    packetsDestroyed++;
+                }
             });
-            stat1.textContent = "Dalton HQ (Doelwit)"; stat2.textContent = "SILENT Base (Bron)";
-            stat3.textContent = `Signaalsterkte bij HQ: ${silentBase.signal.toFixed(1)} dB`;
-            stat3.style.color = silentBase.signal < 20 ? 'var(--accent-lime-green)' : 'white';
-        }
-        function gameLoop() {
-            calculateSignal();
-            draw();
-            if (draggingJammerIdx === null && silentBase.signal < 20 && !jammers.some(j => j.inPool)) {
-                let score = Math.max(0, (20 - silentBase.signal) * 20);
+
+            if (lives <= 0 || (wave === maxWaves && dataPackets.length === 0)) {
+                let score = packetsDestroyed * 20 + lives * 50;
+                let message = lives > 0 ? "Alle datastromen gestopt! Netwerk veilig." : "Te veel data doorgelaten! Missie gefaald.";
                 cleanup();
-                onComplete(score, `Missie geslaagd! Signaal verzwakt. +${score.toFixed(0)} punten`, 'correct');
-            } else {
-                animationFrameId = requestAnimationFrame(gameLoop);
+                onComplete(score, message, lives > 0 ? 'correct' : 'incorrect');
             }
         }
-        calculateSignal(); gameLoop();
+        
+        function draw() {
+            ctx.fillStyle = '#013220'; ctx.fillRect(0, 0, width, height);
+            ctx.strokeStyle = "rgba(0, 255, 0, 0.1)"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(silentBase.x, silentBase.y); ctx.lineTo(towerSlots[0].x, towerSlots[0].y); ctx.lineTo(towerSlots[1].x, towerSlots[1].y); ctx.lineTo(hq.x, hq.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(silentBase.x, silentBase.y); ctx.lineTo(towerSlots[2].x, towerSlots[2].y); ctx.lineTo(towerSlots[1].x, towerSlots[1].y); ctx.stroke();
+
+            ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(silentBase.x, silentBase.y, silentBase.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("SILENT", silentBase.x-25, silentBase.y+30);
+            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(hq.x, hq.y, hq.radius, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'white'; ctx.fillText("HQ", hq.x-10, hq.y+30);
+
+            towerSlots.forEach(slot => { ctx.strokeStyle = 'yellow'; ctx.lineWidth = slot.occupied ? 1 : 3; ctx.beginPath(); ctx.arc(slot.x, slot.y, 20, 0, 2*Math.PI); ctx.stroke(); });
+            jammers.forEach(jammer => { ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(jammer.x, jammer.y, 15, 0, 2*Math.PI); ctx.fill(); ctx.fillStyle = 'rgba(255, 255, 0, 0.1)'; ctx.beginPath(); ctx.arc(jammer.x, jammer.y, jammer.radius, 0, 2*Math.PI); ctx.fill(); });
+            dataPackets.forEach(packet => { ctx.fillStyle = `rgba(255, 0, 100, ${packet.health/100})`; ctx.beginPath(); ctx.arc(packet.x, packet.y, packet.radius, 0, 2*Math.PI); ctx.fill(); });
+            
+            stat1.textContent = `Levens: ${lives}`;
+            stat2.textContent = `Data vernietigd: ${packetsDestroyed}`;
+            stat3.textContent = jammersToPlace > 0 ? `Plaats nog ${jammersToPlace} stoorzender(s)` : `Golf ${wave}/${maxWaves}`;
+        }
+        
+        function cleanup() { canvas.removeEventListener('click', clickHandler); if(animationFrameId) cancelAnimationFrame(animationFrameId); }
+        function gameLoop() { update(); draw(); animationFrameId = requestAnimationFrame(gameLoop); }
+        gameLoop();
     }
     
     function initHearingProtectionGame(canvas, onComplete) {
@@ -754,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
             objects.forEach((obj, index) => {
                 obj.x -= obj.speed; if(obj.x < -obj.width) objects.splice(index, 1);
                 if(player.x < obj.x + obj.width && player.x + player.width > obj.x && player.y < obj.y + obj.height && player.y + player.height > obj.y) {
-                    if(obj.harmful) damage += 25; else { damage = Math.max(0, damage - 20); itemsCollected++; }
+                    if(obj.harmful) damage = Math.min(maxDamage, damage + 25); else { damage = Math.max(0, damage - 20); itemsCollected++; }
                     objects.splice(index, 1);
                 }
             });
