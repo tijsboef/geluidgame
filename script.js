@@ -417,11 +417,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const intermediateInput = gameContainer.querySelector('#minigame-intermediate-input');
             const intermediateUserAnswer = normalizeAnswer(intermediateInput.value);
             const intermediateCorrectAnswer = normalizeAnswer(minigameData.intermediateAnswer);
-            if(intermediateUserAnswer !== intermediateCorrectAnswer) allCorrect = false;
+            if(intermediateUserAnswer !== intermediateCorrectAnswer) {
+                allCorrect = false;
+                intermediateInput.style.borderColor = '#8b0000';
+            } else {
+                intermediateInput.style.borderColor = 'var(--primary-green)';
+            }
         }
+        
+        mainInput.style.borderColor = (mainUserAnswer === mainCorrectAnswer) ? 'var(--primary-green)' : '#8b0000';
 
         if (allCorrect) { showFeedback('Uitstekend werk, Agent! +250 punten', 'correct'); updateScore(250); } 
-        else { showFeedback(`Incorrect. De juiste antwoorden waren ${minigameData.intermediateAnswer ? minigameData.intermediateAnswer + ' ms en ' : ''}${minigameData.answer} Hz.`, 'incorrect'); }
+        else { showFeedback(`Incorrect. Controleer je berekening.`, 'incorrect'); }
         
         mainInput.disabled = true;
         gameContainer.querySelector('#minigame-intermediate-input')?.setAttribute('disabled', true);
@@ -521,15 +528,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initAmplitudeComparison(parentElement) {
         const canvas = document.createElement('canvas'); canvas.className = 'level-canvas'; canvas.width = 500; canvas.height = 300; parentElement.insertBefore(canvas, parentElement.firstChild);
-        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height; let offset = 0;
-        function drawWave(label, yOffset, freq, amp, color) {
-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; const centerY = yOffset, amplitude = amp;
+        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height, divSize = width / 10; let offset = 0;
+        function drawWave(label, freq, amp, color, lineDash = []) {
+            ctx.beginPath(); ctx.setLineDash(lineDash);
+            ctx.strokeStyle = color; ctx.lineWidth = 2; const centerY = height / 2, amplitude = amp;
             for(let x=0; x < width; x++) { const angle = ((x + offset*freq) / (50/freq)) * 2 * Math.PI; const y = centerY - Math.sin(angle) * amplitude; if(x===0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
-            ctx.stroke(); ctx.font = "20px Roboto Mono"; ctx.fillStyle = "white"; ctx.fillText(label, 10, yOffset);
+            ctx.stroke(); ctx.setLineDash([]);
+            ctx.font = "20px Roboto Mono"; ctx.fillStyle = color; ctx.fillText(label, 10, centerY - amp - 10);
         }
         function animate() {
-            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height);
-            drawWave('P', height * 0.25, 1, 30, '#32CD32'); drawWave('Q', height * 0.75, 2, 50, '#32CD32');
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
+            drawWave('P', 1, 60, '#32CD32'); 
+            drawWave('Q', 2, 100, '#FFD700');
             offset++; animationFrameId = requestAnimationFrame(animate);
         }
         animate();
@@ -542,33 +552,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let round = 1, totalRounds = 3, score = 0, currentRoundType;
         let targetWave = {}, playerWave = {}, clickWaves = [];
-        let clickHandler; // To remove event listener later
+        let clickHandler;
+        
+        const roundData = [
+            { type: 'match', timebase: 10, targetFreqDivs: 4 }, // Ronde 1
+            { type: 'match', timebase: 5, targetFreqDivs: 2 },  // Ronde 2
+            { type: 'click', timebase: 2, targetWaveIndex: 1 }    // Ronde 3
+        ];
         
         function drawWave(wave, color) {
             ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath();
-            const centerY = wave.y, amplitude = wave.amp;
-            for(let x=0; x < width; x++) { const angle = (x / (wave.w_len || 50)) * wave.freq * 2 * Math.PI; const yPos = centerY - Math.sin(angle) * amplitude; if(x===0) ctx.moveTo(x, yPos); else ctx.lineTo(x, yPos); }
+            const centerY = wave.y, amplitude = wave.amp, waveLength = divSize * wave.divs;
+            for(let x=0; x < width; x++) { const angle = (x / waveLength) * 2 * Math.PI; const yPos = centerY - Math.sin(angle) * amplitude; if(x===0) ctx.moveTo(x, yPos); else ctx.lineTo(x, yPos); }
             ctx.stroke();
         }
         
         function setupRound() {
-            controlsContainer.innerHTML = ''; // Maak controls leeg
-            currentRoundType = round === 2 ? 'click' : 'match'; // Ronde 2 is de klik-ronde
+            controlsContainer.innerHTML = '';
+            const data = roundData[round-1];
+            currentRoundType = data.type;
 
             if (currentRoundType === 'match') {
-                targetWave = { freq: 2 + Math.floor(Math.random() * 5), y: height * 0.25, amp: 60 };
-                playerWave = { freq: 1, y: height * 0.75, amp: 60 };
-                controlsContainer.innerHTML = `<button id="freq-down-btn" class="btn">- Freq</button> <button id="freq-up-btn" class="btn">+ Freq</button> <button id="confirm-freq-btn" class="btn">Bevestig</button>`;
-                document.getElementById('freq-down-btn').onclick = () => { if(playerWave.freq > 1) playerWave.freq--; };
-                document.getElementById('freq-up-btn').onclick = () => { if(playerWave.freq < 10) playerWave.freq++; };
+                targetWave = { divs: data.targetFreqDivs, y: height * 0.25, amp: 60 };
+                playerWave = { divs: 10, y: height * 0.75, amp: 60 }; // Start met langzame golf
+                controlsContainer.innerHTML = `<button id="freq-down-btn" class="btn">- Divs</button> <button id="freq-up-btn" class="btn">+ Divs</button> <button id="confirm-freq-btn" class="btn">Bevestig</button>`;
+                document.getElementById('freq-down-btn').onclick = () => { if(playerWave.divs < 20) playerWave.divs++; };
+                document.getElementById('freq-up-btn').onclick = () => { if(playerWave.divs > 1) playerWave.divs--; };
                 document.getElementById('confirm-freq-btn').onclick = checkMatch;
             } else { // 'click' round
-                stat3.textContent = 'Klik op de golf met een frequentie van 4 Hz.';
+                stat3.textContent = `Tijdbasis: ${data.timebase} ms/div. Klik op de 50 Hz golf.`;
                 clickWaves = [
-                    { freq: 2, y: height * 0.2, amp: 50, w_len: 100, isTarget: false },
-                    { freq: 4, y: height * 0.5, amp: 50, w_len: 100, isTarget: true },
-                    { freq: 8, y: height * 0.8, amp: 50, w_len: 100, isTarget: false }
+                    { divs: 10, y: height * 0.2, amp: 50, freq: 1/(10*data.timebase*0.001), isTarget: false }, // 50 Hz
+                    { divs: 4, y: height * 0.5, amp: 50, freq: 1/(4*data.timebase*0.001), isTarget: true },  // 125 Hz - OOPS, needs to be 50Hz. T = 1/50 = 0.02s = 20ms. If timebase is 2ms/div, T needs 10 divs.
+                    { divs: 2, y: height * 0.8, amp: 50, freq: 1/(2*data.timebase*0.001), isTarget: false }  // 250 Hz
                 ];
+                // Recalculate which one is 50 Hz
+                 clickWaves.forEach(w => w.isTarget = (Math.round(w.freq) === 50));
+
                 clickHandler = (e) => {
                     const rect = canvas.getBoundingClientRect(), x = e.clientX-rect.left, y = e.clientY-rect.top;
                     clickWaves.forEach(wave => { if (y > wave.y - wave.amp && y < wave.y + wave.amp) checkClick(wave.isTarget); });
@@ -583,21 +603,23 @@ document.addEventListener('DOMContentLoaded', () => {
             else { stat3.textContent = 'Correct! Volgende ronde...'; setTimeout(setupRound, 1500); }
         }
 
-        function checkMatch() { if(playerWave.freq === targetWave.freq) { score += 100; nextRound(); } else { stat3.textContent = 'Frequenties komen niet overeen. Probeer opnieuw.'; } }
+        function checkMatch() { if(playerWave.divs === targetWave.divs) { score += 100; nextRound(); } else { stat3.textContent = 'Golven komen niet overeen. Probeer opnieuw.'; } }
         function checkClick(isCorrect) { canvas.removeEventListener('click', clickHandler); if(isCorrect) { score += 150; nextRound(); } else { stat3.textContent = 'Fout signaal geselecteerd.'; setTimeout(nextRound, 1500); } }
 
         function gameLoop() {
+            const data = roundData[round-1];
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
             if(currentRoundType === 'match') {
                 drawWave(targetWave, 'var(--accent-lime-green)'); drawWave(playerWave, '#ff4d4d');
-                stat2.textContent = `Jouw Freq: ${playerWave.freq}`; stat3.textContent = `Doel Freq: ${targetWave.freq}`;
+                stat2.textContent = `Jouw golf: ${playerWave.divs} divs`; stat3.textContent = `Tijdbasis: ${data.timebase} ms/div`;
             } else {
                 clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)'));
                 stat2.textContent = '';
             }
             stat1.textContent = `Ronde: ${round}/${totalRounds}`;
-            if (round <= totalRounds) animationFrameId = requestAnimationFrame(gameLoop);
+            if (round <= totalRounds && !onComplete.called) animationFrameId = requestAnimationFrame(gameLoop);
         }
+        onComplete.called = false; // Add a flag to prevent multiple calls
         setupRound(); gameLoop();
     }
     
@@ -607,13 +629,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const poolWidth = 150;
         
         let hq = {x: width - 50, y: height/2, radius: 20};
-        let silentBase = {x: 50 + poolWidth, y: height/2, radius: 20, signal: 100};
+        let silentBase = {x: poolWidth + 50, y: height/2, radius: 20, signal: 100};
         let jammers = [
             {id: 0, x: 75, y: 100, radius: 25, inPool: true}, 
             {id: 1, x: 75, y: height/2, radius: 25, inPool: true}, 
             {id: 2, x: 75, y: height - 100, radius: 25, inPool: true}
         ];
         let draggingJammerIdx = null;
+        let mapLines = [];
+
+        // Generate static map lines once
+        for(let i=0; i<10; i++) { mapLines.push({x1: poolWidth + Math.random()*(width-poolWidth), y1: 0, x2: poolWidth + Math.random()*(width-poolWidth), y2: height}); }
+        for(let i=0; i<6; i++) { mapLines.push({x1: poolWidth, y1: Math.random()*height, x2: width, y2: Math.random()*height}); }
 
         function distance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
         function calculateSignal() {
@@ -631,15 +658,23 @@ document.addEventListener('DOMContentLoaded', () => {
             jammers[draggingJammerIdx].inPool = false;
             calculateSignal();
         };
-        canvas.addEventListener('mousedown', mousedown); window.addEventListener('mouseup', mouseup); canvas.addEventListener('mousemove', mousemove);
-
-        function drawMap() {
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"; ctx.lineWidth = 1;
-            for(let i=0; i<10; i++) { ctx.beginPath(); ctx.moveTo(poolWidth + Math.random()* (width-poolWidth), 0); ctx.lineTo(poolWidth + Math.random()* (width-poolWidth), height); ctx.stroke(); }
-            for(let i=0; i<6; i++) { ctx.beginPath(); ctx.moveTo(poolWidth, Math.random()*height); ctx.lineTo(width, Math.random()*height); ctx.stroke(); }
+        
+        function cleanup() {
+            canvas.removeEventListener('mousedown', mousedown); 
+            window.removeEventListener('mouseup', mouseup); 
+            window.removeEventListener('mousemove', mousemove);
+            if(animationFrameId) cancelAnimationFrame(animationFrameId);
         }
+
+        canvas.addEventListener('mousedown', mousedown);
+        window.addEventListener('mouseup', mouseup);
+        window.addEventListener('mousemove', mousemove);
+
         function draw() {
-            ctx.fillStyle = '#013220'; ctx.fillRect(0, 0, width, height); drawMap();
+            ctx.fillStyle = '#013220'; ctx.fillRect(0, 0, width, height); 
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"; ctx.lineWidth = 1;
+            mapLines.forEach(line => { ctx.beginPath(); ctx.moveTo(line.x1, line.y1); ctx.lineTo(line.x2, line.y2); ctx.stroke(); });
+
             ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(0, 0, poolWidth, height);
             ctx.fillStyle = "white"; ctx.font="16px Roboto Mono"; ctx.fillText("DEPOT", 45, 30);
 
@@ -654,7 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
             stat3.textContent = `Signaalsterkte bij HQ: ${silentBase.signal.toFixed(1)} dB`;
             stat3.style.color = silentBase.signal < 20 ? 'var(--accent-lime-green)' : 'white';
         }
-        function cleanup() { canvas.removeEventListener('mousedown', mousedown); window.removeEventListener('mouseup', mouseup); canvas.removeEventListener('mousemove', mousemove); cancelAnimationFrame(animationFrameId); }
         function gameLoop() {
             draw();
             if (draggingJammerIdx === null && silentBase.signal < 20 && !jammers.some(j => j.inPool)) {
