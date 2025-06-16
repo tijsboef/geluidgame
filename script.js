@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let agentName = "Nieuweling";
     let levelTasks = 0;
     let completedTasks = 0;
-    let animationFrameId; // Voor het stoppen van de game loop
+    let activeGameLoopId = null; 
 
     // --- Verhaal & Level Data --- //
     const storyIntro = "Agent, welkom bij de Dalton Divisie. De kwaadaardige organisatie 'SILENT' dreigt al het geluid uit de wereld te stelen met hun 'Mute'-technologie. Jouw missie, mocht je die accepteren, is om hun operaties te saboteren. Agent Echo zal je begeleiden. Veel succes.";
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Training 1
         {
             title: "Trainingsmissie 1: Actieve Sonar", type: 'minigame_only', init: initSonarGame,
-            description: "Goed werk. Tijd voor een praktijktest. SILENT drones verstoppen zich achter rotsformaties. Let op: je sonar detecteert per ping maar één object. Gebruik de info van elke echo om de 3 drones te vinden. Beweeg met de pijltjestoetsen, ping met de spatiebalk.",
+            description: "Goed werk. Tijd voor een praktijktest. SILENT drones verstoppen zich achter rotsformaties. Let op: je sonar detecteert per ping maar één object en stopt dan. Gebruik de info van elke echo om de 3 drones te vinden. Beweeg met de pijltjestoetsen, ping met de spatiebalk.",
         },
         // Missie 2
         {
@@ -97,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         // Training 3
         {
-            title: "Trainingsmissie 3: Stoorzenders Plaatsen", type: 'minigame_only', init: initJammerGame,
-            description: "SILENT verstuurt datastromen naar hun HQ. Plaats 3 stoorzenders op de beschikbare torenlocaties (gele cirkels) om de datastromen te vernietigen voordat ze ons netwerk bereiken."
+            title: "Trainingsmissie 3: Stoorzender Netwerk", type: 'minigame_only', init: initJammerGame,
+            description: "SILENT verstuurt datastromen naar hun HQ. Plaats 3 stoorzenders op de beschikbare torenlocaties om de datastromen te vernietigen voordat ze ons netwerk bereiken."
         },
         // Missie 4
         {
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         screens[screenName].classList.add('active');
     }
 
-    function animateText(element, text) {
+    function animateText(element, text, callback) {
         let i = 0;
         element.textContent = "";
         const typing = setInterval(() => {
@@ -152,14 +152,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 i++;
             } else {
                 clearInterval(typing);
+                if (callback) callback();
             }
         }, 30);
     }
+    
+    function cleanupListeners() {
+        if(window.activeGameListeners) {
+            window.activeGameListeners.forEach(({target, type, handler}) => {
+                target.removeEventListener(type, handler);
+            });
+            window.activeGameListeners = [];
+        }
+    }
 
     function loadLevel(levelData) {
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
+        cleanupListeners();
+        if (activeGameLoopId) {
+            cancelAnimationFrame(activeGameLoopId);
+            activeGameLoopId = null;
         }
         levelTitle.textContent = levelData.title;
         levelContent.innerHTML = '';
@@ -339,6 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const gameWrapper = document.createElement('div');
         gameWrapper.style.display = 'flex';
         gameWrapper.style.gap = '20px';
+        gameWrapper.style.alignItems = 'flex-start';
+
 
         const canvasWrapper = document.createElement('div');
         canvasWrapper.style.flexGrow = '1';
@@ -363,6 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const infoPanel = document.createElement('div');
             infoPanel.id = 'info-panel';
             infoPanel.style.width = '200px';
+            infoPanel.style.flexShrink = '0';
             infoPanel.style.padding = '10px';
             infoPanel.style.border = '1px solid var(--accent-lime-green)';
             infoPanel.style.borderRadius = '8px';
@@ -480,7 +494,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateScore(points) { score += points; scoreDisplay.textContent = score; }
     
     function endGame() {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        cleanupListeners();
+        if (activeGameLoopId) cancelAnimationFrame(activeGameLoopId);
         finalAgentName.textContent = agentName; finalScoreDisplay.textContent = score;
         saveAndShowHighscores(); showScreen('end');
     }
@@ -493,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         highscoreList.innerHTML = ''; top5.forEach(entry => { const li = document.createElement('li'); li.textContent = `${entry.name} - ${entry.score} punten`; highscoreList.appendChild(li); });
     }
     
-    function restartGame() { currentLevelIndex = -1; showScreen('intro'); animateText(introTextElement, storyIntro); }
+    function restartGame() { currentLevelIndex = -1; showScreen('intro'); animateText(introTextElement, storyIntro, () => { agentNameInput.style.display = 'block'; startButton.style.display = 'block'; }); }
 
     // --- CANVAS MINIGAME FUNCTIES --- //
     
@@ -515,34 +530,47 @@ document.addEventListener('DOMContentLoaded', () => {
         drones.push({ x: width * 0.15, y: height * 0.9, width: 60, height: 15, found: false }); // Achter een andere rots
         drones.push({ x: width * 0.8, y: height * 0.7, width: 60, height: 15, found: false }); // Vrijstaand
 
-        let keys = {}, keydownHandler = (e) => keys[e.code] = true, keyupHandler = (e) => { if (e.code === 'Space') firePing(); delete keys[e.code]; };
-        window.addEventListener('keydown', keydownHandler); window.addEventListener('keyup', keyupHandler);
-        function firePing() { if (pingsLeft > 0 && pings.length === 0) { pingsLeft--; pings.push({ x: ship.x + ship.width / 2, y: ship.y + ship.height, radius: 10, speed: 3, maxRadius: width, hit: false }); stat3.textContent = "Sonar ping verstuurd..."; } }
+        let keys = {};
+        const keydownHandler = (e) => keys[e.code] = true;
+        const keyupHandler = (e) => { if (e.code === 'Space') firePing(); delete keys[e.code]; };
+        
+        window.activeGameListeners = [
+            {target: window, type: 'keydown', handler: keydownHandler},
+            {target: window, type: 'keyup', handler: keyupHandler}
+        ];
+        window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
+
+        function firePing() { if (pingsLeft > 0 && pings.length === 0) { pingsLeft--; pings.push({ x: ship.x + ship.width / 2, y: ship.y + ship.height, radius: 10, speed: 3, maxRadius: width, hit: false, alpha: 1 }); stat3.textContent = "Sonar ping verstuurd..."; } }
         function update() {
             if (keys['ArrowLeft'] && ship.x > 0) ship.x -= ship.speed; if (keys['ArrowRight'] && ship.x < width - ship.width) ship.x += ship.speed;
             pings.forEach((ping, p_index) => {
-                ping.radius += ping.speed;
-                if (!ping.hit) {
-                    for (const rock of rocks) { if (!rock.found && checkCollision(ping, rock)) { rock.found = true; ping.hit = true; stat3.textContent = "Echo: Rotsformatie gedetecteerd."; break; }}
-                    if (!ping.hit) { for (const drone of drones) { if (!drone.found && checkCollision(ping, drone)) { drone.found = true; dronesFound++; ping.hit = true; stat3.textContent = "Echo: SILENT drone gelokaliseerd!"; break; }}}
+                if (ping.hit) {
+                    ping.alpha -= 0.05; // Fade out
+                    if (ping.alpha <= 0) pings.splice(p_index, 1);
+                    return;
                 }
+                
+                ping.radius += ping.speed;
+                for (const rock of rocks) { if (!rock.found && checkCollision(ping, rock)) { rock.found = true; ping.hit = true; stat3.textContent = "Echo: Rotsformatie gedetecteerd."; return; }}
+                for (const drone of drones) { if (!drone.found && checkCollision(ping, drone)) { drone.found = true; dronesFound++; ping.hit = true; stat3.textContent = "Echo: SILENT drone gelokaliseerd!"; return;}}
+                
                 if (ping.radius > ping.maxRadius) { if(!ping.hit) { stat3.textContent = "Echo: Geen objecten gedetecteerd."; } pings.splice(p_index, 1); }
             });
         }
         function checkCollision(ping, object) { let distX = Math.abs(ping.x - object.x - object.width / 2), distY = Math.abs(ping.y - object.y - object.height / 2); if (distX > (object.width / 2 + ping.radius)) { return false; } if (distY > (object.height / 2 + ping.radius)) { return false; } if (distX <= (object.width / 2)) { return true; } if (distY <= (object.height / 2)) { return true; } let dx = distX - object.width/2, dy = distY - object.height/2; return (dx*dx + dy*dy <= (ping.radius*ping.radius)); }
         function draw() {
             ctx.fillStyle = '#001f3f'; ctx.fillRect(0, 0, width, height); ctx.fillStyle = '#E0E0E0'; ctx.fillRect(ship.x, ship.y, ship.width, ship.height); ctx.fillRect(ship.x + 20, ship.y - 10, 40, 10);
-            pings.forEach(ping => { ctx.strokeStyle = 'var(--accent-lime-green)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ping.x, ping.y, ping.radius, 0, Math.PI * 2); ctx.stroke(); });
+            pings.forEach(ping => { ctx.strokeStyle = `rgba(50, 205, 50, ${ping.alpha})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ping.x, ping.y, ping.radius, 0, Math.PI * 2); ctx.stroke(); });
             rocks.forEach(rock => { if (rock.found) { ctx.fillStyle = '#5D4037'; ctx.fillRect(rock.x, rock.y, rock.width, rock.height); } });
             drones.forEach(drone => { if (drone.found) { ctx.fillStyle = '#c0c0c0'; ctx.fillRect(drone.x, drone.y, drone.width, drone.height); } });
             stat1.textContent = `Pings Over: ${pingsLeft}`; stat2.textContent = `Drones Gevonden: ${dronesFound} / ${totalDrones}`;
         }
-        function cleanup() { window.removeEventListener('keydown', keydownHandler); window.removeEventListener('keyup', keyupHandler); cancelAnimationFrame(animationFrameId); }
+        
         function gameLoop() {
             update(); draw();
-            if (dronesFound === totalDrones) { cleanup(); onComplete(dronesFound * 100 + pingsLeft * 50, `Alle drones gevonden! Missie geslaagd.`, 'correct'); return; }
-            if (pingsLeft === 0 && pings.length === 0) { cleanup(); onComplete(dronesFound * 100, `Geen pings meer. ${dronesFound} van de ${totalDrones} gevonden.`, 'incorrect'); return; }
-            animationFrameId = requestAnimationFrame(gameLoop);
+            if (dronesFound === totalDrones) { onComplete(dronesFound * 100 + pingsLeft * 50, `Alle drones gevonden! Missie geslaagd.`, 'correct'); return; }
+            if (pingsLeft === 0 && pings.length === 0) { onComplete(dronesFound * 100, `Geen pings meer. ${dronesFound} van de ${totalDrones} gevonden.`, 'incorrect'); return; }
+            activeGameLoopId = requestAnimationFrame(gameLoop);
         }
         stat3.textContent = "Wacht op commando..."; gameLoop();
     }
@@ -558,6 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initAmplitudeComparison(parentElement) {
         const canvas = document.createElement('canvas'); canvas.className = 'level-canvas'; canvas.width = 500; canvas.height = 300; parentElement.insertBefore(canvas, parentElement.firstChild);
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height, divSize = width / 10; let offset = 0;
+        let localAnimId = null;
         function drawWave(label, freq, amp, color, lineDash = []) {
             ctx.beginPath(); ctx.setLineDash(lineDash);
             ctx.strokeStyle = color; ctx.lineWidth = 2; const centerY = height / 2, amplitude = amp;
@@ -566,11 +595,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.font = "20px Roboto Mono"; ctx.fillStyle = color; ctx.fillText(label, 10, centerY - amp - 10);
         }
         function animate() {
-            if(!animationFrameId) return; // Stop if new level is loaded
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
             drawWave('P', 1, 60, '#32CD32'); 
             drawWave('Q', 2, 100, '#FFD700');
-            offset++; animationFrameId = requestAnimationFrame(animate);
+            offset++; 
+            localAnimId = requestAnimationFrame(animate);
+            activeGameLoopId = localAnimId;
         }
         animate();
     }
@@ -583,7 +613,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false, mousePos = {x:0, y:0};
         let targetWave = {}, playerWave = {}, clickWaves = [];
-        let clickHandler, moveHandler;
         
         const roundData = [
             { type: 'match', timebase: 10, targetFreqDivs: 4 }, // 1 / (4 * 10ms) = 25 Hz
@@ -621,10 +650,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     { divs: 5, y: height * 0.8, amp: 50 }   // T = 10ms, f = 100Hz
                 ];
                 clickWaves.forEach(w => w.isTarget = (Math.round(1 / (w.divs * data.timebase * 0.001)) === data.targetFreqHz));
-                clickHandler = (e) => { const rect = canvas.getBoundingClientRect(), x = e.clientX-rect.left, y = e.clientY-rect.top; clickWaves.forEach(wave => { if (y > wave.y - wave.amp && y < wave.y + wave.amp) checkClick(wave.isTarget); }); };
-                moveHandler = (e) => { const rect = canvas.getBoundingClientRect(); mousePos.x = e.clientX-rect.left; mousePos.y = e.clientY-rect.top; clickWaves.forEach(wave => wave.hover = (mousePos.y > wave.y - wave.amp && mousePos.y < wave.y + wave.amp));};
+                const clickHandler = (e) => { const rect = canvas.getBoundingClientRect(), y = e.clientY - rect.top; clickWaves.forEach(wave => { if (y > wave.y - wave.amp && y < wave.y + wave.amp) checkClick(wave.isTarget); }); };
+                const moveHandler = (e) => { const rect = canvas.getBoundingClientRect(); mousePos.y = e.clientY - rect.top; clickWaves.forEach(wave => wave.hover = (mousePos.y > wave.y - wave.amp && mousePos.y < wave.y + wave.amp));};
                 canvas.addEventListener('click', clickHandler);
                 canvas.addEventListener('mousemove', moveHandler);
+                window.activeGameListeners.push({target: canvas, type: 'click', handler: clickHandler}, {target: canvas, type: 'mousemove', handler: moveHandler});
             }
         }
 
@@ -641,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(nextRound, 1500);
         }
         function checkClick(isCorrect) { 
-            canvas.removeEventListener('click', clickHandler); canvas.removeEventListener('mousemove', moveHandler);
+            cleanupListeners();
             if(isCorrect) { score += 150; stat3.textContent = 'Correct! Punten verdiend.'; } else { stat3.textContent = 'Fout signaal geselecteerd.'; }
             setTimeout(nextRound, 1500);
         }
@@ -660,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stat2.textContent = '';
             }
             stat1.textContent = `Ronde: ${round}/${totalRounds}`;
-            animationFrameId = requestAnimationFrame(gameLoop);
+            activeGameLoopId = requestAnimationFrame(gameLoop);
         }
         setupRound(); gameLoop();
     }
@@ -674,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const towerSlots = [{x: 200, y: 100}, {x: 400, y: 250}, {x: 200, y: 400}];
         
         let jammers = [], dataPackets = [], packetsDestroyed = 0, lives = 3, wave = 0, maxWaves = 5;
-        let jammersToPlace = 3, spawnTimer = 0;
+        let jammersToPlace = 3, spawnTimer = 0, gameEnded = false;
 
         function distance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
         
@@ -690,14 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
         canvas.addEventListener('click', clickHandler);
+        window.activeGameListeners.push({target: canvas, type: 'click', handler: clickHandler});
 
         function update() {
-            if(jammersToPlace > 0) return; // Wacht tot alle jammers geplaatst zijn
+            if(jammersToPlace > 0) return; 
 
             spawnTimer++;
             if (spawnTimer > 120 && wave < maxWaves) {
                 spawnTimer = 0; wave++;
-                for(let i=0; i<wave * 2; i++) { // Meer packets per golf
+                for(let i=0; i<wave * 2; i++) { 
                     dataPackets.push({ x: silentBase.x, y: silentBase.y, speed: 1 + Math.random(), radius: 8, health: 100 });
                 }
             }
@@ -725,10 +756,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            if (lives <= 0 || (wave === maxWaves && dataPackets.length === 0)) {
+            if ((lives <= 0 || (wave === maxWaves && dataPackets.length === 0)) && !gameEnded) {
+                gameEnded = true;
                 let score = packetsDestroyed * 20 + lives * 50;
                 let message = lives > 0 ? "Alle datastromen gestopt! Netwerk veilig." : "Te veel data doorgelaten! Missie gefaald.";
-                cleanup();
                 onComplete(score, message, lives > 0 ? 'correct' : 'incorrect');
             }
         }
@@ -751,8 +782,11 @@ document.addEventListener('DOMContentLoaded', () => {
             stat3.textContent = jammersToPlace > 0 ? `Plaats nog ${jammersToPlace} stoorzender(s)` : `Golf ${wave}/${maxWaves}`;
         }
         
-        function cleanup() { canvas.removeEventListener('click', clickHandler); if(animationFrameId) cancelAnimationFrame(animationFrameId); }
-        function gameLoop() { update(); draw(); animationFrameId = requestAnimationFrame(gameLoop); }
+        function gameLoop() { 
+            if(gameEnded) return;
+            update(); draw(); 
+            activeGameLoopId = requestAnimationFrame(gameLoop); 
+        }
         gameLoop();
     }
     
@@ -760,10 +794,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         let player = {x: 50, y: height/2, width: 20, height: 40, speed: 10};
-        let objects = [], damage = 0, maxDamage = 100, itemsCollected = 0, spawnTimer = 0, gameTime = 20, timerId;
+        let objects = [], damage = 0, maxDamage = 100, itemsCollected = 0, spawnTimer = 0, gameTime = 20, timerId, gameEnded = false;
         
         let keys = {}, keydownHandler = (e) => keys[e.code] = true, keyupHandler = (e) => delete keys[e.code];
         window.addEventListener('keydown', keydownHandler); window.addEventListener('keyup', keyupHandler);
+        window.activeGameListeners.push({target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler});
+
 
         function update() {
             if(keys['ArrowUp'] && player.y > 0) player.y -= player.speed; if(keys['ArrowDown'] && player.y < height - player.height) player.y += player.speed;
@@ -783,14 +819,15 @@ document.addEventListener('DOMContentLoaded', () => {
             stat1.textContent = `Gehoorschade: ${damage}%`; stat2.textContent = `Bescherming: ${itemsCollected}`; stat3.textContent = `Tijd over: ${gameTime}s`;
             ctx.fillStyle = 'grey'; ctx.fillRect(width/2-100, 10, 200, 20); ctx.fillStyle = 'red'; ctx.fillRect(width/2-100, 10, damage*2, 20);
         }
-        function cleanup() { window.removeEventListener('keydown', keydownHandler); window.removeEventListener('keyup', keyupHandler); cancelAnimationFrame(animationFrameId); clearInterval(timerId); }
+
         function gameLoop() {
+            if(gameEnded) return;
             update(); draw();
-            if(damage >= maxDamage) { cleanup(); onComplete(itemsCollected * 25, 'Gehoorschade kritiek! Missie afgebroken.', 'incorrect'); }
-             else if (gameTime <= 0) { cleanup(); onComplete(itemsCollected * 50 - damage * 2, "Tijd is om! Je bent veilig ontsnapt.", "correct"); }
-            else { animationFrameId = requestAnimationFrame(gameLoop); }
+            if(damage >= maxDamage) { gameEnded = true; onComplete(itemsCollected * 25, 'Gehoorschade kritiek! Missie afgebroken.', 'incorrect'); }
+             else if (gameTime <= 0) { gameEnded = true; onComplete(itemsCollected * 50 - damage * 2, "Tijd is om! Je bent veilig ontsnapt.", "correct"); }
+            else { activeGameLoopId = requestAnimationFrame(gameLoop); }
         }
-        timerId = setInterval(()=> gameTime--, 1000);
+        timerId = setInterval(()=> {if(gameTime > 0) gameTime--}, 1000);
         gameLoop();
     }
 
@@ -801,5 +838,10 @@ document.addEventListener('DOMContentLoaded', () => {
     restartButton.addEventListener('click', restartGame);
 
     // --- Initialisatie --- //
-    animateText(introTextElement, storyIntro);
+    agentNameInput.style.display = 'none';
+    startButton.style.display = 'none';
+    animateText(introTextElement, storyIntro, () => {
+        agentNameInput.style.display = 'block';
+        startButton.style.display = 'block';
+    });
 });
