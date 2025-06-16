@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Training 1
         {
             title: "Trainingsmissie 1: Actieve Sonar", type: 'minigame_only', init: initSonarGame,
-            description: "Goed werk. Tijd voor een praktijktest. SILENT drones verstoppen zich achter rotsformaties. Let op: je sonar detecteert per ping maar één object en stopt dan. Gebruik de info van elke echo om de 3 drones te vinden. Beweeg met de pijltjestoetsen, ping met de spatiebalk.",
+            description: "Goed werk. Tijd voor een praktijktest. SILENT drones verstoppen zich achter rotsformaties. Je sonar detecteert per ping maar één object en wordt geblokkeerd door rotsen. Beweeg met de pijltjestoetsen, ping met de spatiebalk.",
         },
         // Missie 2
         {
@@ -97,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         // Training 3
         {
-            title: "Trainingsmissie 3: Mengpaneel Meester", type: 'minigame_only', init: initMixerGame,
-            description: "Je bent undercover als geluidstechnicus bij een SILENT-evenement. Voorkom dat het geluid te hard wordt! Klik op de rode 'FEEDBACK' kanalen om ze te dempen voordat de master-volumebalk (rechts) te lang in het rood blijft."
+            title: "Trainingsmissie 3: Stealth Operatie", type: 'minigame_only', init: initStealthGame,
+            description: "Infiltreer de SILENT-basis. Beweeg (pijltje rechts) alleen als het omgevingsgeluid hoog is (groene balk) om de wachten niet te alarmeren. Sta stil als het stil is!"
         },
         // Missie 4
         {
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
          // Training 4
         {
             title: "Trainingsmissie 4: Gehoorbescherming", type: 'minigame_only', init: initHearingProtectionGame,
-            description: "Je infiltreert een luidruchtig SILENT-evenement. Gevaarlijke geluidsgolven (rood) komen op je af. Beweeg met de pijltjestoetsen om ze te ontwijken en verzamel gehoorbeschermers (groen) om je gehoorschade te herstellen."
+            description: "Je infiltreert een luidruchtig SILENT-evenement. Ontwijk schadelijke geluidsgolven (rood) met de pijltjestoetsen (omhoog/omlaag). Rode golven kosten een leven, groene golven geven een leven. Begin met 3 levens. Overleef zo lang mogelijk!"
         }
     ];
     
@@ -490,7 +490,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function checkLevelCompletion() { if (completedTasks >= levelTasks) nextButton.classList.remove('hidden'); }
     function nextLevel() { currentLevelIndex++; if (currentLevelIndex < levels.length) loadLevel(levels[currentLevelIndex]); else endGame(); }
-    function showFeedback(message, type) { feedbackElement.textContent = message; feedbackElement.className = `feedback-message ${type} show`; }
+    function showFeedback(message, type) {
+        const popup = document.createElement('div');
+        popup.className = `feedback-popup ${type}`;
+        popup.textContent = message;
+        gameContainer.appendChild(popup);
+        setTimeout(() => {
+            popup.classList.add('show');
+        }, 10);
+        setTimeout(() => {
+            popup.classList.remove('show');
+            setTimeout(() => {
+                gameContainer.removeChild(popup);
+            }, 500);
+        }, 2000);
+    }
     function updateScore(points) { score += points; scoreDisplay.textContent = score; }
     
     function endGame() {
@@ -702,105 +716,104 @@ document.addEventListener('DOMContentLoaded', () => {
         setupRound(); gameLoop();
     }
     
-    function initMixerGame(canvas, onComplete) {
+    function initStealthGame(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
-        let gameTime = 30, score = 0, gameEnded = false;
+        let gameEnded = false;
+
+        let player = { x: 50, y: height/2, radius: 15, speed: 1.5 };
+        let exit = { x: width - 50, y: height/2, radius: 20 };
+        let guards = [
+            { x: width * 0.3, y: height * 0.3, radius: 80 },
+            { x: width * 0.6, y: height * 0.7, radius: 100 }
+        ];
         
-        const channels = [];
-        const channelCount = 5;
-        const channelWidth = width / (channelCount + 2);
+        let ambientNoise = 0;
+        let noiseChangeTimer = 0;
+        let isMoving = false;
 
-        for (let i=0; i < channelCount; i++) {
-            channels.push({
-                x: (i + 1) * channelWidth,
-                y: height - 50,
-                width: 40,
-                height: 250,
-                level: 0,
-                isFeedback: Math.random() < 0.5,
-                muted: false
-            });
-        }
-        
-        let masterLevel = 0;
-        let timeInRed = 0;
-
-        const clickHandler = (e) => {
-            const rect = canvas.getBoundingClientRect(), mouseX = e.clientX-rect.left, mouseY = e.clientY-rect.top;
-            channels.forEach(ch => {
-                if(mouseX > ch.x && mouseX < ch.x + ch.width && mouseY > ch.y-ch.height && mouseY < ch.y) {
-                    if (ch.isFeedback) {
-                        ch.muted = true;
-                        score += 50;
-                    } else {
-                        score -= 25; // Penalty for muting good channels
-                    }
-                }
-            });
-        };
-        canvas.addEventListener('click', clickHandler);
-        window.activeGameListeners.push({target: canvas, type: 'click', handler: clickHandler});
-
+        const keydownHandler = (e) => { if(e.code === 'ArrowRight') isMoving = true; };
+        const keyupHandler = (e) => { if(e.code === 'ArrowRight') isMoving = false; };
+        window.activeGameListeners.push(
+            {target: window, type: 'keydown', handler: keydownHandler},
+            {target: window, type: 'keyup', handler: keyupHandler}
+        );
+        window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type,handler));
 
         function update() {
-            masterLevel = 0;
-            channels.forEach(ch => {
-                if (!ch.muted) {
-                    if (ch.isFeedback) {
-                        ch.level += (Math.random() - 0.4) * 20; // Prone to spike
-                    } else {
-                        ch.level += (Math.random() - 0.5) * 10; // More stable
-                    }
-                    ch.level = Math.max(0, Math.min(ch.height, ch.level));
-                    masterLevel += ch.level;
-                } else {
-                    ch.level *= 0.9; // Fade out when muted
+            // Update ambient noise
+            noiseChangeTimer--;
+            if(noiseChangeTimer <= 0) {
+                ambientNoise = Math.random();
+                noiseChangeTimer = Math.random() * 120 + 60; // Change every 1-3 seconds
+            }
+
+            // Move player
+            if(isMoving) {
+                player.x += player.speed;
+            }
+
+            // Check for detection
+            let inDetectionZone = false;
+            guards.forEach(guard => {
+                const dist = Math.hypot(player.x - guard.x, player.y - guard.y);
+                if (dist < guard.radius) {
+                    inDetectionZone = true;
                 }
             });
-            masterLevel /= channels.length;
-            
-            if (masterLevel > 200) timeInRed++; else timeInRed = Math.max(0, timeInRed - 1);
-            if (timeInRed > 180) { // 3 seconds in red
+
+            if (isMoving && inDetectionZone && ambientNoise < 0.6) {
                 gameEnded = true;
-                onComplete(score, 'Te luid! De versterkers zijn doorgebrand.', 'incorrect');
+                onComplete(0, "Gedetecteerd! Missie gefaald.", 'incorrect');
+            }
+
+            // Check for win
+            if (Math.hypot(player.x - exit.x, player.y - exit.y) < player.radius + exit.radius) {
+                gameEnded = true;
+                onComplete(250, "Basis geïnfiltreerd! Goed werk agent.", 'correct');
             }
         }
         
         function draw() {
             ctx.fillStyle = '#1E1E1E'; ctx.fillRect(0, 0, width, height);
-            channels.forEach(ch => {
-                ctx.fillStyle = '#333'; ctx.fillRect(ch.x, ch.y - ch.height, ch.width, ch.height);
-                const gradient = ctx.createLinearGradient(ch.x, ch.y, ch.x, ch.y-ch.height);
-                gradient.addColorStop(0, '#0f0');
-                gradient.addColorStop(0.7, '#ff0');
-                gradient.addColorStop(1, '#f00');
+            
+            // Draw detection zones
+            guards.forEach(guard => {
+                const gradient = ctx.createRadialGradient(guard.x, guard.y, 10, guard.x, guard.y, guard.radius);
+                const color = (isMoving && ambientNoise < 0.6) ? '255, 0, 0' : '255, 255, 0';
+                gradient.addColorStop(0, `rgba(${color}, 0.3)`);
+                gradient.addColorStop(1, `rgba(${color}, 0)`);
                 ctx.fillStyle = gradient;
-                ctx.fillRect(ch.x, ch.y, ch.width, -ch.level);
-                ctx.font = '16px Roboto Mono';
-                ctx.fillStyle = ch.isFeedback ? '#ff4d4d' : 'var(--accent-lime-green)';
-                ctx.fillText(ch.isFeedback ? 'FEEDBACK' : 'BAND', ch.x, ch.y + 20);
-                if (ch.muted) { ctx.fillStyle = "white"; ctx.fillText("MUTED", ch.x, ch.y-ch.height/2);}
+                ctx.beginPath();
+                ctx.arc(guard.x, guard.y, guard.radius, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(guard.x, guard.y, 10, 0, 2*Math.PI);
+                ctx.fill();
             });
 
-            // Master channel
-            ctx.fillStyle = '#333'; ctx.fillRect(width-channelWidth, height-50-250, 40, 250);
-            const masterGradient = ctx.createLinearGradient(0, height-50, 0, height-50-250);
-            masterGradient.addColorStop(0, '#0f0'); masterGradient.addColorStop(0.7, '#ff0'); masterGradient.addColorStop(1, '#f00');
-            ctx.fillStyle = masterGradient; ctx.fillRect(width-channelWidth, height-50, 40, -masterLevel);
-            ctx.font = '16px Roboto Mono'; ctx.fillStyle = 'white'; ctx.fillText('MASTER', width-channelWidth, height-20);
+            // Draw player and exit
+            ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, 2*Math.PI); ctx.fill();
+            ctx.fillStyle = 'var(--accent-lime-green)'; ctx.beginPath(); ctx.arc(exit.x, exit.y, exit.radius, 0, 2*Math.PI); ctx.fill();
+            
+            // Draw noise meter
+            const meterHeight = 200, meterWidth = 30;
+            ctx.fillStyle = '#333'; ctx.fillRect(width-50, height - 50 - meterHeight, meterWidth, meterHeight);
+            ctx.fillStyle = ambientNoise > 0.6 ? 'var(--accent-lime-green)' : 'yellow';
+            ctx.fillRect(width-50, height - 50, meterWidth, -ambientNoise * meterHeight);
+            ctx.strokeStyle = 'white'; ctx.strokeRect(width-50, height - 50 - meterHeight, meterWidth, meterHeight);
+
+            stat1.textContent = 'Speler: Blauw';
+            stat2.textContent = 'Doel: Groen';
+            stat3.textContent = 'Omgevingsgeluid';
         }
-        
-        const timerId = setInterval(()=> { if(!gameEnded) gameTime--}, 1000);
 
         function gameLoop() {
             if(gameEnded) return;
-            update(); draw();
-            stat1.textContent = `Score: ${score}`; stat2.textContent = `Tijd Over: ${gameTime}`;
-            if(gameTime <= 0) {
-                gameEnded = true;
-                onComplete(score, 'Goed gemixt! Het evenement was een succes.', 'correct');
-            }
+            update();
+            draw();
             activeGameLoopId = requestAnimationFrame(gameLoop);
         }
         gameLoop();
@@ -810,7 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
         let player = {x: 50, y: height/2, width: 20, height: 40, speed: 10};
-        let objects = [], damage = 0, maxDamage = 100, itemsCollected = 0, spawnTimer = 0, gameTime = 20, timerId, gameEnded = false;
+        let objects = [], lives = 3, itemsCollected = 0, spawnTimer = 0, gameTime = 0, gameEnded = false, difficultyTimer = 0;
         
         let keys = {};
         const keydownHandler = (e) => keys[e.code] = true;
@@ -819,32 +832,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         function update() {
-            if(keys['ArrowUp'] && player.y > 0) player.y -= player.speed; if(keys['ArrowDown'] && player.y < height - player.height) player.y += player.speed;
+            if(keys['ArrowUp'] && player.y > 0) player.y -= player.speed; 
+            if(keys['ArrowDown'] && player.y < height - player.height) player.y += player.speed;
+            
             spawnTimer++;
-            if(spawnTimer > 30) { spawnTimer = 0; objects.push({ x: width, y: Math.random()*(height-30), width: 30, height: 30, speed: 5 + Math.random()*5, harmful: Math.random() > 0.4 }); }
+            difficultyTimer++;
+
+            let spawnRate = 30 - Math.floor(difficultyTimer / 1200); // gets faster over time
+            if(spawnTimer > Math.max(10, spawnRate)) { 
+                spawnTimer = 0; 
+                objects.push({ 
+                    x: width, y: Math.random()*(height-30), 
+                    width: 30, height: 30, 
+                    speed: 5 + (difficultyTimer/600) + Math.random()*5, // gets faster
+                    harmful: Math.random() < 0.833 // 5:1 ratio
+                }); 
+            }
             objects.forEach((obj, index) => {
                 obj.x -= obj.speed; if(obj.x < -obj.width) objects.splice(index, 1);
                 if(player.x < obj.x + obj.width && player.x + player.width > obj.x && player.y < obj.y + obj.height && player.y + player.height > obj.y) {
-                    if(obj.harmful) damage = Math.min(maxDamage, damage + 25); else { damage = Math.max(0, damage - 20); itemsCollected++; }
+                    if(obj.harmful) { lives--; } else { lives = Math.min(5, lives + 1); itemsCollected++; }
                     objects.splice(index, 1);
                 }
             });
+            if(lives <= 0) gameEnded = true;
         }
         function draw() {
             ctx.fillStyle = '#1E1E1E'; ctx.fillRect(0, 0, width, height); ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
             objects.forEach(obj => { ctx.fillStyle = obj.harmful ? '#ff4d4d' : 'var(--accent-lime-green)'; ctx.fillRect(obj.x, obj.y, obj.width, obj.height); });
-            stat1.textContent = `Gehoorschade: ${damage}%`; stat2.textContent = `Bescherming: ${itemsCollected}`; stat3.textContent = `Tijd over: ${gameTime}s`;
-            ctx.fillStyle = 'grey'; ctx.fillRect(width/2-100, 10, 200, 20); ctx.fillStyle = 'red'; ctx.fillRect(width/2-100, 10, damage*2, 20);
+            stat1.textContent = `Levens: ${lives}`; 
+            stat2.textContent = `Score: ${Math.floor(gameTime / 60)}`;
+            stat3.textContent = `Bescherming: ${itemsCollected}`;
         }
 
         function gameLoop() {
-            if(gameEnded) return;
+            if(gameEnded) {
+                onComplete(Math.floor(gameTime/60), `Missie voorbij! Je hebt ${Math.floor(gameTime/60)} seconden overleefd.`, 'correct');
+                return;
+            }
+            gameTime++;
             update(); draw();
-            if(damage >= maxDamage) { gameEnded = true; onComplete(itemsCollected * 25, 'Gehoorschade kritiek! Missie afgebroken.', 'incorrect'); }
-             else if (gameTime <= 0) { gameEnded = true; onComplete(itemsCollected * 50 - damage * 2, "Tijd is om! Je bent veilig ontsnapt.", "correct"); }
-            else { activeGameLoopId = requestAnimationFrame(gameLoop); }
+            activeGameLoopId = requestAnimationFrame(gameLoop);
         }
-        timerId = setInterval(()=> {if(gameTime > 0) gameTime--}, 1000);
         gameLoop();
     }
 
