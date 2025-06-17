@@ -848,12 +848,27 @@ document.addEventListener('DOMContentLoaded', () => {
         let round = 1, totalRounds = 3, score = 0, currentRoundType, gameEnded = false;
         let targetWave = {}, playerWave = {}, clickWaves = [];
         
-        const roundData = [
-            { type: 'match', timebase: 10, targetFreqDivs: 4 }, // 1 / (4 * 10ms) = 25 Hz
-            { type: 'match', timebase: 5, targetFreqDivs: 5 },  // 1 / (5 * 5ms) = 40 Hz
-            { type: 'click', timebase: 2, targetFreqHz: 50 }    // T = 1/50 = 20ms. Tijd/div = 2ms => 10 divs
+        const round1Variants = [
+            { type: 'match', timebase: 10, targetFreqDivs: 4 }, // T=40ms, f=25Hz
+            { type: 'match', timebase: 10, targetFreqDivs: 2 }, // T=20ms, f=50Hz
+            { type: 'match', timebase: 5,  targetFreqDivs: 8 }, // T=40ms, f=25Hz
+            { type: 'match', timebase: 2,  targetFreqDivs: 10}, // T=20ms, f=50Hz
         ];
-        
+
+        const round2Variants = [
+            { type: 'match', timebase: 5, targetFreqDivs: 5 },  // T=25ms, f=40Hz
+            { type: 'match', timebase: 5, targetFreqDivs: 4 },  // T=20ms, f=50Hz
+            { type: 'match', timebase: 2, targetFreqDivs: 10 }, // T=20ms, f=50Hz
+            { type: 'match', timebase: 1, targetFreqDivs: 20 }, // T=20ms, f=50Hz
+        ];
+
+        const round3Variants = [
+            { type: 'click', timebase: 2, targetFreqHz: 50,  waveDivs: [5, 10, 20] }, 
+            { type: 'click', timebase: 5, targetFreqHz: 20,  waveDivs: [10, 2, 5] },
+            { type: 'click', timebase: 1, targetFreqHz: 100, waveDivs: [5, 10, 2] },
+            { type: 'click', timebase: 10,targetFreqHz: 25,  waveDivs: [2, 4, 8] },
+        ];
+
         function drawWave(wave, color, lineThickness) {
             ctx.strokeStyle = color; ctx.lineWidth = lineThickness; ctx.beginPath();
             const centerY = wave.y, amplitude = wave.amp, waveLength = divSize * wave.divs;
@@ -870,7 +885,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             controlsContainer.innerHTML = '';
             if (infoPanelContent) infoPanelContent.innerHTML = '';
-            const data = roundData[round-1];
+            
+            let data;
+            if (round === 1) data = getRandomVariant(round1Variants, 'freq_r1');
+            else if (round === 2) data = getRandomVariant(round2Variants, 'freq_r2');
+            else data = getRandomVariant(round3Variants, 'freq_r3');
+            
             currentRoundType = data.type;
             if (infoPanelContent) infoPanelContent.innerHTML = `<p>Timebase: <br><span style="color:var(--accent-lime-green);">${data.timebase} ms/div</span></p>`;
 
@@ -884,12 +904,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { // 'click' round
                 stat3.textContent = `Klik op de pijl naast de ${data.targetFreqHz} Hz golf.`;
                 controlsContainer.innerHTML = ''; 
-                clickWaves = [
-                    { divs: 20, y: height * 0.2, amp: 50, buttonY: height * 0.2},
-                    { divs: 10, y: height * 0.5, amp: 50, buttonY: height * 0.5},
-                    { divs: 5,  y: height * 0.8, amp: 50, buttonY: height * 0.8}
-                ];
                 
+                const wavePositions = [height * 0.2, height * 0.5, height * 0.8];
+                clickWaves = data.waveDivs.map((div, index) => ({
+                    divs: div,
+                    y: wavePositions[index],
+                    amp: 50,
+                    buttonY: wavePositions[index]
+                }));
+
                 clickWaves.forEach((w) => {
                     w.isTarget = (Math.round(1 / (w.divs * data.timebase * 0.001)) === data.targetFreqHz);
                     const btn = document.createElement('button');
@@ -946,12 +969,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function gameLoop() {
             if (gameEnded) return;
-            const data = roundData[round-1];
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
             
             if(currentRoundType === 'match') {
                 drawWave(targetWave, 'var(--accent-lime-green)', 3); drawWave(playerWave, '#ff4d4d', 3);
-                const playerFreq = Math.round(1 / (playerWave.divs * data.timebase * 0.001));
+                const playerFreq = Math.round(1 / (playerWave.divs * (playerWave.timebase || 5) * 0.001));
                 stat2.textContent = `Jouw golf: ${playerFreq} Hz`; stat3.textContent = ``;
             } else {
                 clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)', 4));
