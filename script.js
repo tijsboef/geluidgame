@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- DOM Elementen --- //
+    const loaderScreen = document.getElementById('loader-screen');
     const gameContainer = document.getElementById('game-container');
     const scoreDisplay = document.getElementById('score');
     const agentNameDisplay = document.getElementById('agent-name-display');
@@ -1178,16 +1179,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Event Listeners --- //
-    startButton.addEventListener('click', startGame);
-    nextButton.addEventListener('click', nextLevel);
-    restartButton.addEventListener('click', restartGame);
+    // --- Event Listeners & Initialisatie --- //
+    function initializeApp() {
+        startButton.addEventListener('click', startGame);
+        nextButton.addEventListener('click', nextLevel);
+        restartButton.addEventListener('click', restartGame);
 
-    // --- Initialisatie --- //
-    agentNameInput.style.display = 'none';
-    startButton.style.display = 'none';
-    animateText(introTextElement, storyIntro, () => {
-        agentNameInput.style.display = 'block';
-        startButton.style.display = 'block';
-    });
+        setTimeout(() => {
+            if (loaderScreen) loaderScreen.style.display = 'none';
+            if (gameContainer) gameContainer.style.display = 'block';
+
+            agentNameInput.style.display = 'none';
+            startButton.style.display = 'none';
+            animateText(introTextElement, storyIntro, () => {
+                agentNameInput.style.display = 'block';
+                startButton.style.display = 'block';
+            });
+        }, 2500); // Wacht 2.5s om het laad-icoon te tonen
+    }
+
+    initializeApp();
 });
