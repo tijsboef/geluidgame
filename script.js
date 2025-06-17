@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DOM Elementen --- //
     const loaderScreen = document.getElementById('loader-screen');
+    const classSelectionScreen = document.getElementById('class-selection-screen');
     const gameContainer = document.getElementById('game-container');
     const scoreDisplay = document.getElementById('score');
     const agentNameDisplay = document.getElementById('agent-name-display');
@@ -21,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const finalScoreDisplay = document.getElementById('final-score');
     const highscoreList = document.getElementById('highscore-list');
     const restartButton = document.getElementById('restart-button');
+    const vmboButton = document.getElementById('class-vmbo-btn');
+    const ghaButton = document.getElementById('class-gha-btn');
 
     // --- Game State --- //
     let currentLevelIndex = -1;
@@ -29,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let levelTasks = 0;
     let completedTasks = 0;
     let activeGameLoopId = null; 
+    let playerClass = ''; // 'VMBO' or 'GHA'
 
     // --- Verhaal --- //
     const storyIntro = "Agent, welkom bij de Dalton Divisie. De kwaadaardige organisatie 'SILENT' dreigt al het geluid uit de wereld te stelen met hun 'Mute'-technologie. Jouw missie, mocht je die accepteren, is om hun operaties te saboteren. Agent Echo zal je begeleiden. Veel succes.";
@@ -84,12 +88,20 @@ document.addEventListener('DOMContentLoaded', () => {
         { question: "Een violist draait aan de stemknop om de spanning van een snaar te verhogen. Wat voor effect heeft dit op het geluid?", options: ["De toon wordt lager", "Het volume wordt zachter", "Er verandert niets", "De toon wordt hoger"], answer: "De toon wordt hoger" },
         { question: "Twee identieke snaren worden even strak gespannen. Snaar A is van staal (zwaarder), snaar B is van nylon (lichter). Welke snaar produceert waarschijnlijk een hogere toon?", options: ["Snaar A", "Snaar B", "Ze produceren dezelfde toon", "Geen van beide produceert een toon"], answer: "Snaar B" },
     ];
-    const mission3_minigame = [
-        { title: "Analyse: Sterkte Inschatten", description: "500 van onze supporters produceren 75 dB. Een vijandelijke menigte produceert 93 dB.", question: "Hoeveel supporters van SILENT juichen er?", options: ["4.000", "16.000", "32.000", "64.000"], answer: "32.000", hint: "Het verschil is 93 - 75 = 18 dB. Elke +3 dB is een verdubbeling. Hoe vaak past 3 in 18? (6 keer). Je moet het aantal supporters dus 6 keer verdubbelen." },
-        { title: "Analyse: Sterkte Inschatten", description: "Een SILENT-basis wordt beschermd door 10 jammers die samen 100 dB aan ruis produceren. Een nabijgelegen Dalton-buitenpost produceert 112 dB.", question: "Wat is het jammer-equivalent van onze buitenpost?", options: ["80", "160", "320", "1000"], answer: "160", hint: "Verschil = 12 dB. Dat zijn 4 verdubbelingen (12/3=4). Start met 10 en verdubbel 4 keer." },
-        { title: "Analyse: Sterkte Inschatten", description: "Eén SILENT-spion produceert 20 dB aan data-ruis. Hun hoofdkwartier produceert 62 dB.", question: "Hoeveel spionnen zijn daar actief (afgerond)?", options: ["1024", "4096", "16384", "8192"], answer: "16384", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 1 veertien keer verdubbelen." },
-        { title: "Analyse: Sterkte Inschatten", description: "40 SILENT-drones produceren 80 dB aan geluid. Een opstijgend vrachtvliegtuig van de vijand produceert 122 dB.", question: "Wat is de geluidssterkte-equivalent in drones?", options: ["640.000", "40.000", "128.000", "1.280.000"], answer: "640.000", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 40 veertien keer verdubbelen." },
-    ];
+    const mission3_minigame = {
+        GHA: [
+            { title: "Analyse: Sterkte Inschatten", description: "500 van onze supporters produceren 75 dB. Een vijandelijke menigte produceert 93 dB.", question: "Hoeveel supporters van SILENT juichen er?", options: ["4.000", "16.000", "32.000", "64.000"], answer: "32.000", hint: "Het verschil is 93 - 75 = 18 dB. Elke +3 dB is een verdubbeling. Hoe vaak past 3 in 18? (6 keer). Je moet het aantal supporters dus 6 keer verdubbelen." },
+            { title: "Analyse: Sterkte Inschatten", description: "Een SILENT-basis wordt beschermd door 10 jammers die samen 100 dB aan ruis produceren. Een nabijgelegen Dalton-buitenpost produceert 112 dB.", question: "Wat is het jammer-equivalent van onze buitenpost?", options: ["80", "160", "320", "1000"], answer: "160", hint: "Verschil = 12 dB. Dat zijn 4 verdubbelingen (12/3=4). Start met 10 en verdubbel 4 keer." },
+            { title: "Analyse: Sterkte Inschatten", description: "Eén SILENT-spion produceert 20 dB aan data-ruis. Hun hoofdkwartier produceert 62 dB.", question: "Hoeveel spionnen zijn daar actief (afgerond)?", options: ["1024", "4096", "16384", "8192"], answer: "16384", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 1 veertien keer verdubbelen." },
+            { title: "Analyse: Sterkte Inschatten", description: "40 SILENT-drones produceren 80 dB aan geluid. Een opstijgend vrachtvliegtuig van de vijand produceert 122 dB.", question: "Wat is de geluidssterkte-equivalent in drones?", options: ["640.000", "40.000", "128.000", "1.280.000"], answer: "640.000", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 40 veertien keer verdubbelen." },
+        ],
+        VMBO: [
+            { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De agent meet een te hoge waarde als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "kleiner" },
+            { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De agent meet een te lage waarde als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "groter" },
+            { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De scooterrijder kan ten onrechte een boete krijgen als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "kleiner" },
+            { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De scooter wordt onterecht goedgekeurd als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "groter" },
+        ]
+    };
     
     // --- Missie 4 Vragen --- //
     const mission4_q1 = [
@@ -107,51 +119,43 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Definitieve Level Structuur --- //
     const levels = [
-        // Missie 1
         {
             title: "Missie 1: De Tussenstof & Sonar Basis",
             type: 'theory_and_minigame',
             questions: [mission1_q1, mission1_q2],
             minigame: mission1_minigame
         },
-        // Training 1
         {
             title: "Trainingsmissie 1: Actieve Sonar", type: 'minigame_only', init: initSonarGame,
             description: "Goed werk. Tijd voor een praktijktest. SILENT drones verstoppen zich achter rotsformaties. Je sonar detecteert per ping maar één object en wordt geblokkeerd door rotsen. Beweeg met de pijltjestoetsen, ping met de spatiebalk.",
         },
-        // Missie 2
         {
             title: "Missie 2: Frequentie en Toonhoogte",
             type: 'theory_and_minigame',
             questions: [mission2_q1],
             minigame: mission2_minigame
         },
-        // Training 2
         {
             title: "Trainingsmissie 2: Frequentie Matchen", type: 'minigame_only', init: initFrequencyMatchGame,
             description: "Agent, we onderscheppen gecodeerde SILENT-signalen. Voltooi 3 rondes door de signalen te matchen of te selecteren."
         },
-        // Missie 3
         {
             title: "Missie 3: Geluidssterkte",
             type: 'theory_with_canvas',
             canvasPreamble: initAmplitudeComparison,
             questions: [mission3_q1, mission3_q2],
-            minigame: mission3_minigame
+            minigame: mission3_minigame // Dit wordt nu een object met VMBO/GHA opties
         },
-        // Training 3
         {
             title: "Trainingsmissie 3: Stealth Operatie", type: 'minigame_only', init: initStealthGame,
             description: "Infiltreer de SILENT-basis. Gebruik alle pijltjestoetsen. Beweeg alleen als het omgevingsgeluid hoog is om de patrouillerende wachten niet te alarmeren. Sta stil als het stil is, anders word je gedetecteerd!"
         },
-        // Missie 4
         {
             title: "Missie 4: Geluidshinder Bestrijden",
             type: 'theory_and_minigame',
             questions: [mission4_q1],
             minigame: mission4_minigame
         },
-         // Training 4
         {
             title: "Trainingsmissie 4: Gehoorbescherming", type: 'minigame_only', init: initHearingProtectionGame,
             description: "Je infiltreert een luidruchtig SILENT-evenement. Ontwijk de schadelijke geluidsgolven (rode vierkanten) met de pijltjestoetsen. Vang de gehoorbescherming (groene bollen) om een leven te krijgen. Je begint met 3 levens. Overleef zo lang mogelijk!"
@@ -207,8 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (levelData.minigame) {
-            const mgKey = `m${currentLevelIndex}mg`;
-            const minigame = getRandomVariant(levelData.minigame, mgKey);
+            let minigameGroup = levelData.minigame;
+            // Gedifferentieerde logica voor Missie 3
+            if (currentLevelIndex === 4 && levelData.minigame.GHA && levelData.minigame.VMBO) {
+                 minigameGroup = levelData.minigame[playerClass];
+            }
+            const mgKey = `m${currentLevelIndex}mg_${playerClass}`;
+            const minigame = getRandomVariant(minigameGroup, mgKey);
             const minigameEl = createMinigameInputElement(minigame);
             levelContent.appendChild(minigameEl);
             levelTasks++;
@@ -238,8 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function showScreen(screenName) {
-        Object.values(screens).forEach(screen => screen.classList.remove('active'));
-        screens[screenName].classList.add('active');
+        Object.values(screens).forEach(screen => screen.style.display = 'none');
+        if(screens[screenName]) screens[screenName].style.display = 'flex';
     }
 
     function animateText(element, text, callback) {
@@ -1237,21 +1246,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners & Initialisatie --- //
     function initializeApp() {
-        startButton.addEventListener('click', startGame);
-        nextButton.addEventListener('click', nextLevel);
-        restartButton.addEventListener('click', restartGame);
-
-        setTimeout(() => {
-            if (loaderScreen) loaderScreen.style.display = 'none';
-            if (gameContainer) gameContainer.style.display = 'block';
-
+        // Functie om de game te starten na klassenkeuze
+        function proceedToGame() {
+            classSelectionScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
             agentNameInput.style.display = 'none';
             startButton.style.display = 'none';
             animateText(introTextElement, storyIntro, () => {
                 agentNameInput.style.display = 'block';
                 startButton.style.display = 'block';
             });
+        }
+        
+        // Event listeners voor klassenkeuze
+        vmboButton.addEventListener('click', () => {
+            playerClass = 'VMBO';
+            proceedToGame();
+        });
+        
+        ghaButton.addEventListener('click', () => {
+            playerClass = 'GHA';
+            proceedToGame();
+        });
+
+        // Toon laadscherm en daarna klassenkeuze
+        setTimeout(() => {
+            if (loaderScreen) loaderScreen.style.display = 'none';
+            if (classSelectionScreen) classSelectionScreen.style.display = 'flex';
         }, 2500); // Wacht 2.5s om het laad-icoon te tonen
+
+        // Standaard game listeners
+        startButton.addEventListener('click', startGame);
+        nextButton.addEventListener('click', nextLevel);
+        restartButton.addEventListener('click', restartGame);
     }
 
     initializeApp();
