@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="divisie_dalton_logo.png">
 </head>
 <body>
@@ -17,6 +16,18 @@
     <div id="loader-screen">
         <img src="divisie_dalton_logo.png" id="loader-icon" alt="Divisie Dalton Logo Laden...">
     </div>
+    
+    <!-- Klassenkeuze Scherm -->
+    <div id="class-selection-screen" class="screen" style="display: none;">
+         <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Divisie Dalton Logo">
+         <h2>Identificeer je Eenheid</h2>
+         <p>Selecteer je klas om de juiste missieparameters te laden.</p>
+         <div class="button-row">
+            <button id="class-vmbo-btn" class="btn">2VMBO</button>
+            <button id="class-gha-btn" class="btn">2GHA</button>
+         </div>
+    </div>
+
 
     <div id="game-container" style="display: none;">
         <header id="game-header">
@@ -32,7 +43,7 @@
             <div id="intro-screen" class="screen active">
                 <div class="mission-briefing">
                     <h2>Missie Briefing</h2>
-                    <p id="intro-text"></p> <!-- Tekst wordt geanimeerd met JS -->
+                    <p id="intro-text"></p>
                     <input type="text" id="agent-name-input" placeholder="Voer je agentennaam in...">
                     <button id="start-button" class="btn">Start Missie</button>
                 </div>
