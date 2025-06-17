@@ -30,25 +30,89 @@ document.addEventListener('DOMContentLoaded', () => {
     let completedTasks = 0;
     let activeGameLoopId = null; 
 
-    // --- Verhaal & Level Data --- //
+    // --- Verhaal --- //
     const storyIntro = "Agent, welkom bij de Dalton Divisie. De kwaadaardige organisatie 'SILENT' dreigt al het geluid uit de wereld te stelen met hun 'Mute'-technologie. Jouw missie, mocht je die accepteren, is om hun operaties te saboteren. Agent Echo zal je begeleiden. Veel succes.";
 
+    // =========================================================================
+    // <<< UITGEBREIDE VRAGENDATABASE >>>
+    // =========================================================================
+    
+    // --- Missie 1 Vragen --- //
+    const mission1_q1 = [
+        { question: "Je zwemt onderwater en hoort de stem van een dolfijn diep in de zee. Door welke tussenstof verplaatst het geluid zich naar jou toe?", options: ["Lucht", "Aarde", "Water", "Vacuüm"], answer: "Water" },
+        { question: "Een ruimtewandelaar slaat met een hamer tegen een satelliet. Waarom hoort zijn collega op een paar meter afstand niets?", options: ["Er is een vacuüm en geen tussenstof", "Het geluid is te zacht", "De helm blokkeert het geluid", "De hamer is van rubber"], answer: "Er is een vacuüm en geen tussenstof" },
+        { question: "Je staat op een heuvel en hoort kerkklokken in de verte. Wat is de belangrijkste tussenstof voor dit geluid?", options: ["Lucht", "Water", "Aarde", "Metaal"], answer: "Lucht" },
+        { question: "Een geoloog plaatst een seismograaf om trillingen te meten na een explosie kilometers verderop. Door welke tussenstof reist het signaal voornamelijk?", options: ["Aarde", "Lucht", "Water", "Kabels"], answer: "Aarde" },
+    ];
+    const mission1_q2 = [
+        { question: "Een trainer roept de dolfijn met een fluitje vanaf de rand van het bassin. Door welke tussenstof(fen) verplaatst dit geluid zich om de dolfijn te bereiken?", options: ["Alleen water", "Alleen lucht", "Eerst water, dan lucht", "Eerst lucht, dan water"], answer: "Eerst lucht, dan water" },
+        { question: "Je tikt op het raam van een groot aquarium. Een vis aan de andere kant van het aquarium schrikt. Wat is de reisweg van het geluid?", options: ["Alleen glas", "Alleen water", "Eerst water, dan glas", "Eerst glas, dan water"], answer: "Eerst glas, dan water" },
+        { question: "Een vogel in een boom zingt. Je hoort hem terwijl je hoofd onder water is in het zwembad ernaast. Wat is de reisweg van het geluid?", options: ["Alleen lucht", "Alleen water", "Door de grond", "Eerst lucht, dan water"], answer: "Eerst lucht, dan water" },
+        { question: "Je hoort je bovenbuurman lopen. Wat is de meest directe reisweg van dit contactgeluid?", options: ["Alleen vloer", "Alleen lucht", "Via de muren", "Eerst vloer, dan lucht"], answer: "Eerst vloer, dan lucht" },
+    ];
+    const mission1_minigame = [
+        { title: "Analyse: Sonar Echo", description: "We hebben een SILENT-basis gedetecteerd op de zeebodem. De diepte is 2250 m en de geluidssnelheid in zeewater is 1500 m/s.", question: "Bereken de totale reistijd van ons sonarsignaal in seconden.", answer: 3, hint: "tijd = afstand / snelheid. Let op: het signaal moet heen én terug, dus de totale afstand is 2 x 2250 m." },
+        { title: "Analyse: Sonar Echo", description: "We hebben een vijandelijke onderzeeër gespot op 3000 m diepte. De geluidssnelheid hier is 1500 m/s.", question: "Bereken de totale reistijd van de sonar ping in seconden.", answer: 4, hint: "tijd = afstand / snelheid. De totale afstand is heen en terug (2 x 3000 m)." },
+        { title: "Analyse: Sonar Echo", description: "Een wrak ligt op de bodem van een ondiep meer, op 750 m diepte. Geluidssnelheid in dit water is 1500 m/s.", question: "Wat is de reistijd van ons signaal in seconden?", answer: 1, hint: "tijd = afstand / snelheid. Vergeet de terugreis niet mee te rekenen." },
+        { title: "Analyse: Sonar Echo", description: "Onze sonar pingt een object op een diepte van 1500 m. De geluidssnelheid is 1500 m/s.", question: "Bereken de totale reistijd in seconden.", answer: 2, hint: "tijd = afstand / snelheid. De totale afstand is 2 x 1500 m." },
+    ];
+
+    // --- Missie 2 Vragen --- //
+    const mission2_q1 = [
+        { question: "De tijdbasis van de oscilloscoop is ingesteld op 2 ms/div. Wat betekent 'div'?", options: ["De totale tijd op het scherm", "De hoogte van de golf", "Eén horizontaal hokje op het scherm", "De frequentie"], answer: "Eén horizontaal hokje op het scherm" },
+        { question: "Op een oscilloscoop meet je de amplitude van een geluidsgolf. In welke richting kijk je dan voornamelijk?", options: ["De verticale as (Y-as)", "De horizontale as (X-as)", "De diepte-as (Z-as)", "De ronde knoppen"], answer: "De verticale as (Y-as)" },
+        { question: "Je wilt de trillingstijd (periode) van een golf meten op een oscilloscoop. Welke as gebruik je daarvoor?", options: ["De horizontale as (X-as)", "De verticale as (Y-as)", "De helderheid van de lijn", "De kleur van de golf"], answer: "De horizontale as (X-as)" },
+        { question: "Het scherm heeft 10 hokjes (divs) in de breedte. De tijdbasis staat op 5 ms/div. Wat is de totale tijd die op het scherm wordt weergegeven?", options: ["5 ms", "10 ms", "50 ms", "2 ms"], answer: "50 ms" },
+    ];
+    const mission2_minigame = [
+        { title: "Analyse: Kraak de Code", description: "Een geanimeerd oscilloscoopbeeld toont 2 trillingen over 10 horizontale hokjes. De tijdbasis is 2 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 10, question: "Bereken nu de frequentie (f) van deze toon in Hertz (Hz):", answer: 100, hint: "Eén trilling (T) is 5 hokjes lang (10 hokjes / 2 trillingen). T = 5 * 2 = 10 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (10 ms = 0,01 s)." },
+        { title: "Analyse: Kraak de Code", description: "We zien 4 trillingen over 10 hokjes. De tijdbasis is 5 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 12.5, question: "Bereken nu de frequentie (f) in Hz:", answer: 80, hint: "Eén trilling (T) is 2.5 hokjes lang (10 / 4). T = 2.5 * 5 = 12.5 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (12.5 ms = 0,0125 s)." },
+        { title: "Analyse: Kraak de Code", description: "Er zijn 2 trillingen over 8 hokjes. De tijdbasis is 1 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 4, question: "Bereken nu de frequentie (f) in Hz:", answer: 250, hint: "Eén trilling (T) is 4 hokjes lang (8 / 2). T = 4 * 1 = 4 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (4 ms = 0,004 s)." },
+        { title: "Analyse: Kraak de Code", description: "Je ziet 1 trilling over 5 hokjes. De tijdbasis is 10 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 50, question: "Bereken nu de frequentie (f) in Hz:", answer: 20, hint: "Eén trilling (T) is 5 hokjes lang. T = 5 * 10 = 50 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (50 ms = 0,05 s)." },
+    ];
+
+    // --- Missie 3 Vragen --- //
+    const mission3_q1 = [
+        { question: "Welke golf in de animatie is het sterkst (heeft de grootste amplitude)?", options: ['P', 'Q'], answer: 'Q' },
+        { question: "Welke golf in de animatie heeft de hoogste toon (de hoogste frequentie)?", options: ['P', 'Q'], answer: 'Q' },
+        { question: "Welke golf in de animatie is het zachtst (heeft de kleinste amplitude)?", options: ['P', 'Q'], answer: 'P' },
+        { question: "Welke golf in de animatie heeft de laagste toon (de laagste frequentie)?", options: ['P', 'Q'], answer: 'P' },
+    ];
+     const mission3_q2 = [
+        { question: "Een gitarist maakt de snaar van zijn gitaar korter door zijn vinger op de hals te plaatsen. Wat gebeurt er met de toon?", options: ["De toon wordt hoger", "De toon wordt lager", "Het volume wordt harder", "De snaar breekt"], answer: "De toon wordt hoger" },
+        { question: "Een bassist vervangt een dunne snaar door een veel dikkere snaar. Wat is het effect op de toonhoogte als hij de snaar aanslaat?", options: ["Het volume verandert niet", "De toon wordt hoger", "De toon wordt lager", "De snaar trilt niet meer"], answer: "De toon wordt lager" },
+        { question: "Een violist draait aan de stemknop om de spanning van een snaar te verhogen. Wat voor effect heeft dit op het geluid?", options: ["De toon wordt lager", "Het volume wordt zachter", "Er verandert niets", "De toon wordt hoger"], answer: "De toon wordt hoger" },
+        { question: "Twee identieke snaren worden even strak gespannen. Snaar A is van staal (zwaarder), snaar B is van nylon (lichter). Welke snaar produceert waarschijnlijk een hogere toon?", options: ["Snaar A", "Snaar B", "Ze produceren dezelfde toon", "Geen van beide produceert een toon"], answer: "Snaar B" },
+    ];
+    const mission3_minigame = [
+        { title: "Analyse: Sterkte Inschatten", description: "500 van onze supporters produceren 75 dB. Een vijandelijke menigte produceert 93 dB.", question: "Hoeveel supporters van SILENT juichen er?", options: ["4.000", "16.000", "32.000", "64.000"], answer: "32.000", hint: "Het verschil is 93 - 75 = 18 dB. Elke +3 dB is een verdubbeling. Hoe vaak past 3 in 18? (6 keer). Je moet het aantal supporters dus 6 keer verdubbelen." },
+        { title: "Analyse: Sterkte Inschatten", description: "Een SILENT-basis wordt beschermd door 10 jammers die samen 100 dB aan ruis produceren. Een nabijgelegen Dalton-buitenpost produceert 112 dB.", question: "Wat is het jammer-equivalent van onze buitenpost?", options: ["80", "160", "320", "1000"], answer: "160", hint: "Verschil = 12 dB. Dat zijn 4 verdubbelingen (12/3=4). Start met 10 en verdubbel 4 keer." },
+        { title: "Analyse: Sterkte Inschatten", description: "Eén SILENT-spion produceert 20 dB aan data-ruis. Hun hoofdkwartier produceert 62 dB.", question: "Hoeveel spionnen zijn daar actief (afgerond)?", options: ["1024", "4096", "16384", "8192"], answer: "16384", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 1 veertien keer verdubbelen." },
+        { title: "Analyse: Sterkte Inschatten", description: "40 SILENT-drones produceren 80 dB aan geluid. Een opstijgend vrachtvliegtuig van de vijand produceert 122 dB.", question: "Wat is de geluidssterkte-equivalent in drones?", options: ["640.000", "40.000", "128.000", "1.280.000"], answer: "640.000", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 40 veertien keer verdubbelen." },
+    ];
+    
+    // --- Missie 4 Vragen --- //
+    const mission4_q1 = [
+        { question: "Selecteer twee manieren om de geluidshinder van verkeer bij de BRON aan te pakken.", type: 'multi_choice', options: ["Huizen extra goed isoleren", "Stiller asfalt aanleggen", "Een geluidswal plaatsen", "De maximumsnelheid verlagen"], answer: ["Stiller asfalt aanleggen", "De maximumsnelheid verlagen"] },
+        { question: "Een lawaaiige generator van SILENT staat op een dak. Selecteer twee maatregelen die de GELUIDSOVERDRACHT verminderen.", type: 'multi_choice', options: ["De generator op rubberen tegels plaatsen", "Een geluidsdichte omkasting bouwen", "De generator zachter zetten", "De generator 's nachts uitzetten"], answer: ["De generator op rubberen tegels plaatsen", "Een geluidsdichte omkasting bouwen"] },
+        { question: "Je wilt geluidsoverlast van een SILENT-basis naast je huis verminderen. Selecteer twee maatregelen die je bij de ONTVANGER kunt nemen.", type: 'multi_choice', options: ["De basis opblazen", "Dubbel glas plaatsen", "Oorkappen dragen", "Een geluidswal bouwen"], answer: ["Dubbel glas plaatsen", "Oorkappen dragen"] },
+        { question: "Welke twee factoren bepalen voornamelijk hoe luid je een vijandelijk vliegtuig hoort overvliegen?", type: 'multi_choice', options: ["De kleur van het vliegtuig", "De afstand tot het vliegtuig", "Het type motor", "De snelheid van de wind"], answer: ["De afstand tot het vliegtuig", "Het type motor"] },
+    ];
+    const mission4_minigame = [
+        { title: "Analyse: Geluidsmaatregelen", type: 'drag_drop', question: "Sleep de eigenschappen naar de juiste maatregel.", categories: ['Geluidsscherm', 'Geluidswal'], items: [{ text: "Bestaat uit aarde, vaak begroeid", answer: 'Geluidswal' }, { text: "Kaatst geluid terug", answer: 'Geluidsscherm' }, { text: "Absorbeert geluid beter", answer: 'Geluidswal' }, { text: "Heeft meer bouwruimte nodig", answer: 'Geluidswal' }] },
+        { title: "Analyse: Materialen", type: 'drag_drop', question: "Koppel het materiaal aan de juiste eigenschap.", categories: ['Absorptie', 'Reflectie'], items: [{ text: "Speciaal schuimrubber", answer: 'Absorptie' }, { text: "Beton", answer: 'Reflectie' }, { text: "Hout", answer: 'Reflectie' }, { text: "Dikke laag aarde en gras", answer: 'Absorptie' }] },
+        { title: "Analyse: Toepassing", type: 'drag_drop', question: "Koppel de toepassing aan de juiste maatregel.", categories: ['Geluidsscherm', 'Geluidswal'], items: [{ text: "Langs een spoorlijn in de stad", answer: 'Geluidsscherm' }, { text: "Langs een snelweg met veel ruimte", answer: 'Geluidswal' }, { text: "Natuurlijke, groene uitstraling", answer: 'Geluidswal' }, { text: "Hoge geluidsisolatie op klein oppervlak", answer: 'Geluidsscherm' }] },
+        { title: "Analyse: Werkingsprincipe", type: 'drag_drop', question: "Koppel het werkingsprincipe aan de eigenschap.", categories: ['Absorptie', 'Reflectie'], items: [{ text: "Geluid wordt 'gevangen' en omgezet in warmte", answer: 'Absorptie' }, { text: "Geluid wordt een andere kant op gestuurd", answer: 'Reflectie' }, { text: "Creëert een 'geluidsschaduw'", answer: 'Reflectie' }, { text: "Werkt het beste met zachte, poreuze materialen", answer: 'Absorptie' }] },
+    ];
+    
+    // --- Definitieve Level Structuur --- //
     const levels = [
         // Missie 1
         {
             title: "Missie 1: De Tussenstof & Sonar Basis",
             type: 'theory_and_minigame',
-            questions: [
-                { question: "Je zwemt onderwater en hoort de stem van een dolfijn diep in de zee. Door welke tussenstof verplaatst het geluid zich naar jou toe?", options: ["Lucht", "Aarde", "Water", "Vacuüm"], answer: "Water" },
-                { question: "Een trainer roept de dolfijn met een fluitje vanaf de rand van het bassin. Door welke tussenstof(fen) verplaatst dit geluid zich om de dolfijn te bereiken?", options: ["Alleen water", "Alleen lucht", "Eerst water, dan lucht", "Eerst lucht, dan water"], answer: "Eerst lucht, dan water" }
-            ],
-            minigame: {
-                title: "Analyse: Sonar Echo", init: null,
-                description: "We hebben een SILENT-basis gedetecteerd op de zeebodem. De diepte is 2250 m en de geluidssnelheid in zeewater is 1500 m/s.",
-                question: "Bereken de totale reistijd van ons sonarsignaal in seconden.",
-                answer: 3,
-                hint: "tijd = afstand / snelheid. Let op: het signaal moet heen én terug, dus de totale afstand is 2 x 2250 m."
-            }
+            questions: [mission1_q1, mission1_q2],
+            minigame: mission1_minigame
         },
         // Training 1
         {
@@ -59,18 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             title: "Missie 2: Frequentie en Toonhoogte",
             type: 'theory_and_minigame',
-            questions: [
-                { question: "Je analyseert een signaal. De tijdbasis van de oscilloscoop is ingesteld op 2 ms/div. Wat betekent 'div'?", options: ["De totale tijd op het scherm", "De hoogte van de golf", "Eén horizontaal hokje op het scherm", "De frequentie"], answer: "Eén horizontaal hokje op het scherm" }
-            ],
-            minigame: {
-                title: "Analyse: Kraak de Code", init: initOscilloscopeMinigame,
-                description: "Een geanimeerd oscilloscoopbeeld toont 2 trillingen over 10 horizontale hokjes. De tijdbasis is 2 ms/div.",
-                intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:",
-                intermediateAnswer: 10,
-                question: "Bereken nu de frequentie (f) van deze toon in Hertz (Hz):",
-                answer: 100,
-                hint: "Eén trilling (T) is 5 hokjes lang (10 hokjes / 2 trillingen). De tijd per hokje is 2 ms. Dus T = 5 * 2 = 10 ms. De frequentie f = 1 / T. Vergeet niet ms om te rekenen naar s (10 ms = 0,01 s)."
-            }
+            questions: [mission2_q1],
+            minigame: mission2_minigame
         },
         // Training 2
         {
@@ -82,18 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
             title: "Missie 3: Geluidssterkte",
             type: 'theory_with_canvas',
             canvasPreamble: initAmplitudeComparison,
-            questions: [
-                { question: "Welke golf in de animatie hierboven is het sterkst (heeft de grootste amplitude)?", options: ['P', 'Q'], answer: 'Q' },
-                { question: "Welke golf in de animatie hierboven heeft de hoogste toon (de hoogste frequentie)?", options: ['P', 'Q'], answer: 'Q' }
-            ],
-            minigame: {
-                title: "Analyse: Supporters Inschatten", init: null,
-                description: "500 van onze supporters produceren 75 dB. Een vijandelijke menigte produceert 93 dB.",
-                question: "Hoeveel supporters van SILENT juichen er?",
-                options: ["4.000", "16.000", "32.000", "64.000"],
-                answer: "32.000",
-                hint: "Het verschil is 93 - 75 = 18 dB. Elke +3 dB is een verdubbeling. Hoe vaak past 3 in 18? Dat is 6 keer. Je moet het aantal supporters dus 6 keer verdubbelen."
-            }
+            questions: [mission3_q1, mission3_q2],
+            minigame: mission3_minigame
         },
         // Training 3
         {
@@ -104,20 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             title: "Missie 4: Geluidshinder Bestrijden",
             type: 'theory_and_minigame',
-            questions: [
-                { question: "Selecteer twee manieren om de geluidshinder van verkeer bij de BRON aan te pakken.", type: 'multi_choice', options: ["Huizen extra goed isoleren", "Stiller asfalt aanleggen", "Een geluidswal plaatsen", "De maximumsnelheid verlagen"], answer: ["Stiller asfalt aanleggen", "De maximumsnelheid verlagen"] }
-            ],
-             minigame: {
-                title: "Analyse: Geluidsmaatregelen", init: null, type: 'drag_drop',
-                question: "Sleep de eigenschappen naar de juiste plek.",
-                categories: ['Geluidsscherm', 'Geluidswal'],
-                items: [
-                    { text: "Bestaat uit aarde, vaak begroeid", answer: 'Geluidswal' },
-                    { text: "Kaatst geluid terug", answer: 'Geluidsscherm' },
-                    { text: "Absorbeert geluid beter", answer: 'Geluidswal' },
-                    { text: "Heeft meer bouwruimte nodig", answer: 'Geluidswal' }
-                ]
-            }
+            questions: [mission4_q1],
+            minigame: mission4_minigame
         },
          // Training 4
         {
@@ -127,6 +159,73 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     
     // --- Game Functies --- //
+
+    function getRandomVariant(variants, key) {
+        const allIndices = Array.from(Array(variants.length).keys());
+        let usedIndices = JSON.parse(localStorage.getItem(key)) || [];
+
+        let availableIndices = allIndices.filter(index => !usedIndices.includes(index));
+
+        if (availableIndices.length === 0) {
+            usedIndices = [];
+            localStorage.setItem(key, JSON.stringify(usedIndices));
+            availableIndices = allIndices;
+        }
+
+        const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+        usedIndices.push(randomIndex);
+        localStorage.setItem(key, JSON.stringify(usedIndices));
+
+        return variants[randomIndex];
+    }
+
+    function loadLevel(levelData) {
+        cleanupListeners();
+        if (activeGameLoopId) {
+            cancelAnimationFrame(activeGameLoopId);
+            activeGameLoopId = null;
+        }
+        levelTitle.textContent = levelData.title;
+        levelContent.innerHTML = '';
+        nextButton.classList.add('hidden');
+        
+        completedTasks = 0;
+        levelTasks = 0;
+        
+        if (levelData.canvasPreamble) {
+            levelData.canvasPreamble(levelContent);
+        }
+
+        if (levelData.questions) {
+             levelData.questions.forEach((questionGroup, index) => {
+                const qKey = `m${currentLevelIndex}q${index}`;
+                const question = getRandomVariant(questionGroup, qKey);
+                const questionEl = createQuestionElement(question);
+                levelContent.appendChild(questionEl);
+                levelTasks++;
+            });
+        }
+        
+        if (levelData.minigame) {
+            const mgKey = `m${currentLevelIndex}mg`;
+            const minigame = getRandomVariant(levelData.minigame, mgKey);
+            const minigameEl = createMinigameInputElement(minigame);
+            levelContent.appendChild(minigameEl);
+            levelTasks++;
+        }
+
+        if (levelData.type === 'minigame_only') {
+            const minigameEl = createStandaloneMinigameElement(levelData);
+            levelContent.appendChild(minigameEl);
+            if (typeof levelData.init === 'function') {
+                 setTimeout(() => {
+                    const canvas = document.getElementById('minigame-canvas');
+                    if (canvas) levelData.init(canvas, minigameFinished);
+                }, 0);
+            }
+            levelTasks = 1;
+        }
+    }
 
     function startGame() {
         agentName = agentNameInput.value || "Nieuweling";
@@ -164,53 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         window.activeGameListeners = [];
-    }
-
-    function loadLevel(levelData) {
-        cleanupListeners();
-        if (activeGameLoopId) {
-            cancelAnimationFrame(activeGameLoopId);
-            activeGameLoopId = null;
-        }
-        levelTitle.textContent = levelData.title;
-        levelContent.innerHTML = '';
-        nextButton.classList.add('hidden');
-        
-        completedTasks = 0;
-        let questionCount = levelData.questions ? levelData.questions.length : 0;
-        let minigameCount = levelData.minigame ? 1 : 0;
-        if (levelData.type === 'minigame_only') {
-            questionCount = 0;
-            minigameCount = 1;
-        }
-        levelTasks = questionCount + minigameCount;
-        
-        if (levelData.canvasPreamble) {
-            levelData.canvasPreamble(levelContent);
-        }
-
-        if (levelData.questions) {
-             levelData.questions.forEach((q) => {
-                const questionEl = createQuestionElement(q);
-                levelContent.appendChild(questionEl);
-            });
-        }
-        
-        if (levelData.minigame) {
-            const minigameEl = createMinigameInputElement(levelData.minigame);
-            levelContent.appendChild(minigameEl);
-        }
-
-        if (levelData.type === 'minigame_only') {
-            const minigameEl = createStandaloneMinigameElement(levelData);
-            levelContent.appendChild(minigameEl);
-            if (typeof levelData.init === 'function') {
-                 setTimeout(() => {
-                    const canvas = document.getElementById('minigame-canvas');
-                    if (canvas) levelData.init(canvas, minigameFinished);
-                }, 0);
-            }
-        }
     }
     
     // --- Functies voor het maken van elementen --- //
@@ -474,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let isCorrect = selectedOption.textContent === correctAnswer;
         options.forEach(opt => { opt.style.pointerEvents = 'none'; if(opt.textContent === correctAnswer) opt.classList.add('correct'); else if(opt.classList.contains('selected')) opt.classList.add('wrong'); });
         if (isCorrect) { showFeedback('Correct! +100 punten', 'correct'); updateScore(100); } else { showFeedback('Helaas, dat is niet correct.', 'incorrect'); }
-        taskCompleted(questionContainer, isCorrect);
+        taskCompleted(questionContainer, true);
     }
     
     function checkMultiChoiceAnswer(optionsContainer, correctAnswers, taskContainer) {
@@ -490,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const points = Math.max(0, (correctSelections * 75) - (incorrectSelections * 25));
         if (points > 0) { showFeedback(`Gedeeltelijk correct! +${points} punten`, 'correct'); updateScore(points); } 
         else { showFeedback('Helaas, geen punten gescoord.', 'incorrect'); }
-        taskCompleted(taskContainer, points > 0);
+        taskCompleted(taskContainer, true);
     }
 
      function checkDragDropAnswer(ddContainer, taskContainer) {
@@ -505,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const points = correctPlacements * 50;
         if (points > 0) { showFeedback(`Goed werk! ${correctPlacements} items correct geplaatst. +${points} punten`, 'correct'); updateScore(points); } 
         else { showFeedback('Geen items correct geplaatst.', 'incorrect'); }
-        taskCompleted(taskContainer, points > 0);
+        taskCompleted(taskContainer, true);
     }
 
     function checkAnalysisAnswer(gameContainer, minigameData) {
@@ -536,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         mainInput.disabled = true;
         gameContainer.querySelector('#minigame-intermediate-input')?.setAttribute('disabled', true);
-        taskCompleted(gameContainer, allCorrect);
+        taskCompleted(gameContainer, true);
     }
     
     // --- Algemene Game Flow --- //
@@ -555,7 +607,11 @@ document.addEventListener('DOMContentLoaded', () => {
         taskCompleted(container, true);
     }
     
-    function checkLevelCompletion() { if (completedTasks >= levelTasks) nextButton.classList.remove('hidden'); }
+    function checkLevelCompletion() { 
+        if (completedTasks >= levelTasks) {
+            nextButton.classList.remove('hidden'); 
+        }
+    }
     function nextLevel() { currentLevelIndex++; if (currentLevelIndex < levels.length) loadLevel(levels[currentLevelIndex]); else endGame(); }
     
     function showFeedback(message, type) {
