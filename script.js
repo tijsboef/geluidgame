@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(typingInterval);
                 if (callback) callback();
             }
-        }, 30);
+        }, 10);
     }
     
     function cleanupListeners() {
