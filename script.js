@@ -69,10 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
         { question: "Het scherm heeft 10 hokjes (divs) in de breedte. De tijdbasis staat op 5 ms/div. Wat is de totale tijd die op het scherm wordt weergegeven?", options: ["5 ms", "10 ms", "50 ms", "2 ms"], answer: "50 ms" },
     ];
     const mission2_minigame = [
-        { title: "Analyse: Kraak de Code", description: "Een geanimeerd oscilloscoopbeeld toont 2 trillingen over 10 horizontale hokjes. De tijdbasis is 2 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 10, question: "Bereken nu de frequentie (f) van deze toon in Hertz (Hz):", answer: 100, hint: "Eén trilling (T) is 5 hokjes lang (10 hokjes / 2 trillingen). T = 5 * 2 = 10 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (10 ms = 0,01 s)." },
-        { title: "Analyse: Kraak de Code", description: "We zien 4 trillingen over 10 hokjes. De tijdbasis is 5 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 12.5, question: "Bereken nu de frequentie (f) in Hz:", answer: 80, hint: "Eén trilling (T) is 2.5 hokjes lang (10 / 4). T = 2.5 * 5 = 12.5 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (12.5 ms = 0,0125 s)." },
-        { title: "Analyse: Kraak de Code", description: "Er zijn 2 trillingen over 8 hokjes. De tijdbasis is 1 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 4, question: "Bereken nu de frequentie (f) in Hz:", answer: 250, hint: "Eén trilling (T) is 4 hokjes lang (8 / 2). T = 4 * 1 = 4 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (4 ms = 0,004 s)." },
-        { title: "Analyse: Kraak de Code", description: "Je ziet 1 trilling over 5 hokjes. De tijdbasis is 10 ms/div.", intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 50, question: "Bereken nu de frequentie (f) in Hz:", answer: 20, hint: "Eén trilling (T) is 5 hokjes lang. T = 5 * 10 = 50 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (50 ms = 0,05 s)." },
+        { title: "Analyse: Kraak de Code", description: "Een geanimeerd oscilloscoopbeeld toont 2 trillingen over 10 horizontale hokjes. De tijdbasis is 2 ms/div.", init: initOscilloscopeMinigame, initOptions: { oscillations: 2, totalDivs: 10 }, intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 10, question: "Bereken nu de frequentie (f) van deze toon in Hertz (Hz):", answer: 100, hint: "Eén trilling (T) is 5 hokjes lang (10 hokjes / 2 trillingen). T = 5 * 2 = 10 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (10 ms = 0,01 s)." },
+        { title: "Analyse: Kraak de Code", description: "We zien 4 trillingen over 10 hokjes. De tijdbasis is 5 ms/div.", init: initOscilloscopeMinigame, initOptions: { oscillations: 4, totalDivs: 10 }, intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 12.5, question: "Bereken nu de frequentie (f) in Hz:", answer: 80, hint: "Eén trilling (T) is 2.5 hokjes lang (10 / 4). T = 2.5 * 5 = 12.5 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (12.5 ms = 0,0125 s)." },
+        { title: "Analyse: Kraak de Code", description: "Er zijn 2 trillingen over 8 hokjes. De tijdbasis is 1 ms/div.", init: initOscilloscopeMinigame, initOptions: { oscillations: 2, totalDivs: 8 }, intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 4, question: "Bereken nu de frequentie (f) in Hz:", answer: 250, hint: "Eén trilling (T) is 4 hokjes lang (8 / 2). T = 4 * 1 = 4 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (4 ms = 0,004 s)." },
+        { title: "Analyse: Kraak de Code", description: "Je ziet 1 trilling over 5 hokjes. De tijdbasis is 10 ms/div.", init: initOscilloscopeMinigame, initOptions: { oscillations: 1, totalDivs: 5 }, intermediateQuestion: "Bereken eerst de trillingstijd (T) in ms:", intermediateAnswer: 50, question: "Bereken nu de frequentie (f) in Hz:", answer: 20, hint: "Eén trilling (T) is 5 hokjes lang. T = 5 * 10 = 50 ms. f = 1 / T. Vergeet niet ms naar s om te rekenen (50 ms = 0,05 s)." },
     ];
 
     // --- Missie 3 Vragen --- //
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (levelData.questions) {
              levelData.questions.forEach((questionGroup, index) => {
-                const qKey = `m${currentLevelIndex}q${index}`;
+                const qKey = `m${currentLevelIndex}q${index}_${playerClass}`;
                 const question = getRandomVariant(questionGroup, qKey);
                 const questionEl = createQuestionElement(question);
                 levelContent.appendChild(questionEl);
@@ -247,8 +247,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function showScreen(screenName) {
-        Object.values(screens).forEach(screen => screen.style.display = 'none');
-        if(screens[screenName]) screens[screenName].style.display = 'flex';
+        loaderScreen.style.display = 'none';
+        classSelectionScreen.style.display = 'none';
+        gameContainer.style.display = 'none';
+
+        if (screenName === 'classSelection') {
+             classSelectionScreen.style.display = 'flex';
+        } else if (screens[screenName]) {
+             gameContainer.style.display = 'block';
+             Object.values(screens).forEach(screen => screen.style.display = 'none');
+             screens[screenName].style.display = 'flex';
+        } else {
+             classSelectionScreen.style.display = 'flex';
+        }
     }
 
     function animateText(element, text, callback) {
@@ -262,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(typingInterval);
                 if (callback) callback();
             }
-        }, 10);
+        }, 30);
     }
     
     function cleanupListeners() {
@@ -446,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof minigameData.init === 'function') {
             setTimeout(() => { 
                 const canvas = document.getElementById('minigame-canvas'); 
-                if(canvas) minigameData.init(canvas); 
+                if(canvas) minigameData.init(canvas, minigameData.initOptions); 
             }, 0); 
         }
         
@@ -658,7 +669,10 @@ document.addEventListener('DOMContentLoaded', () => {
         highscoreList.innerHTML = ''; top5.forEach(entry => { const li = document.createElement('li'); li.textContent = `${entry.name} - ${entry.score} punten`; highscoreList.appendChild(li); });
     }
     
-    function restartGame() { currentLevelIndex = -1; showScreen('intro'); agentNameInput.style.display='none'; startButton.style.display='none'; animateText(introTextElement, storyIntro, () => { agentNameInput.style.display = 'block'; startButton.style.display = 'block'; }); }
+    function restartGame() {
+        currentLevelIndex = -1;
+        showScreen('classSelection');
+    }
 
     // --- CANVAS MINIGAME FUNCTIES --- //
     
@@ -778,11 +792,28 @@ document.addEventListener('DOMContentLoaded', () => {
         stat3.textContent = "Wacht op commando..."; gameLoop();
     }
     
-    function initOscilloscopeMinigame(canvas) {
-        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height, divSize = width / 10;
-        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize); ctx.beginPath(); ctx.strokeStyle = 'var(--accent-lime-green)'; ctx.lineWidth = 2;
-        const centerY = height / 2, amplitude = height / 4, waveLength = 5 * divSize;
-        for (let x = 0; x < width; x++) { const angle = (x / waveLength) * 2 * Math.PI, y = centerY - Math.sin(angle) * amplitude; if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+    function initOscilloscopeMinigame(canvas, options = {}) {
+        const { oscillations = 2, totalDivs = 10 } = options;
+        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
+        const divSize = width / totalDivs;
+
+        ctx.fillStyle = '#000'; 
+        ctx.fillRect(0, 0, width, height); 
+        drawGrid(ctx, width, height, divSize); 
+        ctx.beginPath(); 
+        ctx.strokeStyle = 'var(--accent-lime-green)'; 
+        ctx.lineWidth = 2;
+
+        const centerY = height / 2;
+        const amplitude = height / 4;
+        const waveLength = width / oscillations;
+
+        for (let x = 0; x < width; x++) {
+            const angle = (x / waveLength) * 2 * Math.PI;
+            const y = centerY - Math.sin(angle) * amplitude;
+            if (x === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
         ctx.stroke();
     }
 
