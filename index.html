@@ -8,10 +8,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="divisie_dalton_logo.png">
 </head>
 <body>
 
-    <div id="game-container">
+    <!-- Laadscherm -->
+    <div id="loader-screen">
+        <img src="divisie_dalton_logo.png" id="loader-icon" alt="Divisie Dalton Logo Laden...">
+    </div>
+
+    <div id="game-container" style="display: none;">
         <header id="game-header">
             <h1 class="title">Dalton Missie</h1>
             <div id="score-board">
@@ -43,6 +50,7 @@
 
             <!-- Eind Scherm -->
             <div id="end-screen" class="screen">
+                <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Divisie Dalton Logo">
                 <h2>Missie Voltooid!</h2>
                 <p>Uitstekend werk, Agent <span id="final-agent-name"></span>!</p>
                 <p>Je eindscore is: <span id="final-score"></span></p>
