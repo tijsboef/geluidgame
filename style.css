@@ -18,6 +18,43 @@ body {
     margin: 0;
     padding: 20px;
     box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* --- Laadscherm --- */
+#loader-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+}
+
+#loader-icon {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 5px solid var(--accent-lime-green);
+    box-shadow: 0 0 25px var(--accent-lime-green);
+    animation: radar-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes radar-pulse {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+        box-shadow: 0 0 15px var(--accent-lime-green);
+    }
+    50% {
+        transform: scale(1.0);
+        opacity: 1;
+        box-shadow: 0 0 35px var(--accent-lime-green);
+    }
+    100% {
+        transform: scale(0.9);
+        opacity: 0.8;
+        box-shadow: 0 0 15px var(--accent-lime-green);
+    }
 }
 
 #game-container {
@@ -61,6 +98,17 @@ header#game-header {
 .screen.active {
     display: flex; /* Actief scherm tonen */
 }
+
+/* Eindscherm Logo */
+.end-screen-logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-green);
+    align-self: center;
+    margin-bottom: 10px;
+}
+
 
 /* --- Knoppen & Interactieve Elementen --- */
 .btn {
