@@ -1205,7 +1205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let objects = [], lives = 3, spawnTimer = 0, gameTime = 0, gameEnded = false;
         
         let keys = {};
-        const keydownHandler = (e) => keys[e.code] = true;
+        const keydownHandler = (e) => {
+            if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+                e.preventDefault();
+            }
+            keys[e.code] = true;
+        };
         const keyupHandler = (e) => delete keys[e.code];
         window.activeGameListeners.push({target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler});
         window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
