@@ -677,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CANVAS MINIGAME FUNCTIES --- //
     
     function drawGrid(ctx, width, height, divSize) {
-        ctx.strokeStyle = "rgba(50, 205, 50, 0.2)"; ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(57, 255, 20, 0.4)"; ctx.lineWidth = 1;
         for (let x = 0; x <= width; x += divSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
         for (let y = 0; y <= height; y += divSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
     }
