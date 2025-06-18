@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mission1_q2 = [
         { question: "Een trainer roept de dolfijn met een fluitje vanaf de rand van het bassin. Door welke tussenstof(fen) verplaatst dit geluid zich om de dolfijn te bereiken?", options: ["Alleen water", "Alleen lucht", "Eerst water, dan lucht", "Eerst lucht, dan water"], answer: "Eerst lucht, dan water" },
         { question: "Je tikt op het raam van een groot aquarium. Een vis aan de andere kant van het aquarium schrikt. Wat is de reisweg van het geluid?", options: ["Alleen glas", "Alleen water", "Eerst water, dan glas", "Eerst glas, dan water"], answer: "Eerst glas, dan water" },
-        { question: "Een vogel in een boom zingt. Je hoort hem terwijl je hoofd onder water is in het zwembad ernaast. Wat is de reisweg van het geluid?", options: ["Alleen lucht", "Alleen water", "Door de grond", "Eerst lucht, dan water"], answer: "Eerst lucht, dan water" },
+        { question: "Een vogel in een boom zingt. Je hoort hem terwijl je hoofd onder water is in het zwembad ernaast. Wat is de reisweg van het geluid?", options: ["Alleen lucht", "Alleen water", "Eerst water, dan lucht", "Eerst lucht, dan water"], answer: "Eerst lucht, dan water" },
         { question: "Je hoort je bovenbuurman lopen. Wat is de meest directe reisweg van dit contactgeluid?", options: ["Alleen vloer", "Alleen lucht", "Via de muren", "Eerst vloer, dan lucht"], answer: "Eerst vloer, dan lucht" },
     ];
     const mission1_minigame = [
@@ -737,8 +737,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             placedDrones++;
         }
-        const keydownHandler = (e) => keys[e.code] = true;
-        const keyupHandler = (e) => { if (e.code === 'Space') firePing(); delete keys[e.code]; };
+        const keydownHandler = (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+            }
+        };
+        const keyupHandler = (e) => { 
+            if (e.code === 'Space') firePing(); 
+            delete keys[e.code]; 
+        };
         window.activeGameListeners = [ {target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler} ];
         window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
         function firePing() { if (pingsLeft > 0 && pings.length === 0) { pingsLeft--; pings.push({ x: ship.x + ship.width / 2, y: ship.y + ship.height, radius: 10, speed: 3, maxRadius: width, hit: false, alpha: 1 }); stat3.textContent = "Sonar ping verstuurd..."; } }
@@ -801,12 +809,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillRect(0, 0, width, height); 
         drawGrid(ctx, width, height, divSize); 
         ctx.beginPath(); 
-        ctx.strokeStyle = 'var(--accent-lime-green)'; 
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#39FF14'; // Brighter Neon Green
+        ctx.lineWidth = 2.5; // Slightly thicker line
 
         const centerY = height / 2;
         const amplitude = height / 4;
-        const waveLength = width / oscillations;
+        const waveLength = (width / totalDivs) * (totalDivs / oscillations);
 
         for (let x = 0; x < width; x++) {
             const angle = (x / waveLength) * 2 * Math.PI;
@@ -972,11 +980,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); drawGrid(ctx, width, height, divSize);
             
             if(currentRoundType === 'match') {
-                drawWave(targetWave, 'var(--accent-lime-green)', 3); drawWave(playerWave, '#ff4d4d', 3);
+                drawWave(targetWave, '#39FF14', 3); drawWave(playerWave, '#ff4d4d', 3);
                 const playerFreq = Math.round(1 / (playerWave.divs * (playerWave.timebase || 5) * 0.001));
                 stat2.textContent = `Jouw golf: ${playerFreq} Hz`; stat3.textContent = ``;
             } else {
-                clickWaves.forEach(w => drawWave(w, 'var(--accent-lime-green)', 4));
+                clickWaves.forEach(w => drawWave(w, '#39FF14', 4));
                 stat2.textContent = '';
             }
             stat1.textContent = `Ronde: ${round}/${totalRounds}`;
