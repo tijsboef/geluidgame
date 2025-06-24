@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geluidsgolven: Operation UnMute</title>
+    <title>Geluidsgolven: De Dalton Missie</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,12 +12,10 @@
 </head>
 <body>
 
-    <!-- Laadscherm -->
     <div id="loader-screen">
         <img src="divisie_dalton_logo.png" id="loader-icon" alt="Divisie Dalton Logo Laden...">
     </div>
     
-    <!-- Klassenkeuze Scherm -->
     <div id="class-selection-screen" class="screen" style="display: none;">
          <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Divisie Dalton Logo">
          <h2>Identificeer je Eenheid</h2>
@@ -31,7 +29,7 @@
 
     <div id="game-container" style="display: none;">
         <header id="game-header">
-            <h1 class="title">Operation UnMute</h1>
+            <h1 class="title">Dalton Missie</h1>
             <div id="score-board">
                 <span>Score: <span id="score">0</span></span>
                 <span>Agent: <span id="agent-name-display">N/A</span></span>
@@ -39,27 +37,23 @@
         </header>
 
         <main id="game-screen">
-            <!-- Introductie Scherm -->
             <div id="intro-screen" class="screen active">
                 <div class="mission-briefing">
                     <h2>Missie Briefing</h2>
                     <p id="intro-text"></p>
-                    <input type="text" id="agent-name-input" placeholder="Jouw agentnaam">
+                    <input type="text" id="agent-name-input" placeholder="Voer je agentennaam in...">
                     <button id="start-button" class="btn">Start Missie</button>
                 </div>
             </div>
 
-            <!-- Level Scherm (generiek) -->
             <div id="level-screen" class="screen">
                 <h2 id="level-title"></h2>
                 <div id="level-content">
-                    <!-- Vragen en minigames worden hier dynamisch geladen -->
-                </div>
+                    </div>
                 <div id="feedback" class="feedback-message"></div>
                 <button id="next-button" class="btn hidden">Volgende</button>
             </div>
 
-            <!-- Eind Scherm -->
             <div id="end-screen" class="screen">
                 <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Divisie Dalton Logo">
                 <h2>Missie Voltooid!</h2>
@@ -67,8 +61,8 @@
                 <p>Je eindscore is: <span id="final-score"></span></p>
                 <h3>Top 5 Agenten</h3>
                 <ol id="highscore-list">
-                    <!-- Highscores worden hier geladen -->
-                </ol>
+                    </ol>
+                <div id="feedback-container"></div>
                 <button id="restart-button" class="btn">Speel Opnieuw</button>
             </div>
         </main>
@@ -76,4 +70,5 @@
 
     <script src="script.js"></script>
 </body>
+</html>
 </html>
