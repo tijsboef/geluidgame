@@ -1,7 +1,7 @@
 // Wacht tot de volledige HTML is geladen
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- DOM Elementen --- //
+      // --- DOM Elementen --- //
     const loaderScreen = document.getElementById('loader-screen');
     const classSelectionScreen = document.getElementById('class-selection-screen');
     const gameContainer = document.getElementById('game-container');
@@ -33,7 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let completedTasks = 0;
     let activeGameLoopId = null; 
     let playerClass = ''; // 'VMBO' or 'GHA'
-
+    let incorrectAnswersLog = [];
+    
     // --- Verhaal --- //
     const storyIntro = "Agent, welkom bij de Dalton Divisie. De kwaadaardige organisatie 'SILENT' dreigt al het geluid uit de wereld te stelen met hun 'Mute'-technologie. Jouw missie, mocht je die accepteren, is om hun operaties te saboteren. Agent Echo zal je begeleiden. Veel succes.";
 
@@ -162,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     ];
     
-    // --- Game Functies --- //
+   // --- Game Functies --- //
 
     function getRandomVariant(variants, key) {
         const allIndices = Array.from(Array(variants.length).keys());
@@ -237,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startGame() {
+        incorrectAnswersLog = []; // Reset het logboek bij een nieuw spel
         agentName = agentNameInput.value || "Nieuweling";
         agentNameDisplay.textContent = agentName;
         score = 0;
@@ -308,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const submitBtn = document.createElement('button');
                 submitBtn.textContent = 'Bevestig Selectie';
                 submitBtn.className = 'btn';
-                submitBtn.onclick = () => checkMultiChoiceAnswer(optionsContainer, questionData.answer, container);
+                submitBtn.onclick = () => checkMultiChoiceAnswer(optionsContainer, questionData.answer, container, questionData);
                 optionsContainer.appendChild(submitBtn);
 
             } else {
@@ -316,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const optionEl = document.createElement('div');
                     optionEl.className = 'option';
                     optionEl.textContent = optionText;
-                    optionEl.addEventListener('click', () => checkAnswer(optionEl, questionData.answer, container));
+                    optionEl.addEventListener('click', () => checkAnswer(optionEl, questionData.answer, container, questionData));
                     optionsContainer.appendChild(optionEl);
                 });
             }
@@ -359,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.className = 'btn'; 
             btn.textContent = 'Controleer Plaatsing'; 
             btn.style.marginTop = '15px';
-            btn.onclick = () => checkDragDropAnswer(ddContainer, container); 
+            btn.onclick = () => checkDragDropAnswer(ddContainer, container, minigameData); 
             container.appendChild(btn);
             
             setTimeout(() => {
@@ -381,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const optionEl = document.createElement('div'); 
                 optionEl.className = 'option'; 
                 optionEl.textContent = optionText; 
-                optionEl.addEventListener('click', () => checkAnswer(optionEl, minigameData.answer, container)); 
+                optionEl.addEventListener('click', () => checkAnswer(optionEl, minigameData.answer, container, minigameData)); 
                 optionsContainer.appendChild(optionEl); 
             });
             container.appendChild(optionsContainer);
@@ -540,32 +542,56 @@ document.addEventListener('DOMContentLoaded', () => {
         return parseFloat(input.replace(',', '.').trim());
     }
 
-    function checkAnswer(selectedOption, correctAnswer, questionContainer) {
+    function checkAnswer(selectedOption, correctAnswer, questionContainer, questionData) {
         if (questionContainer.classList.contains('completed')) return;
         const options = questionContainer.querySelectorAll('.option');
         let isCorrect = selectedOption.textContent === correctAnswer;
         options.forEach(opt => { opt.style.pointerEvents = 'none'; if(opt.textContent === correctAnswer) opt.classList.add('correct'); else if(opt.classList.contains('selected')) opt.classList.add('wrong'); });
-        if (isCorrect) { showFeedback('Correct! +100 punten', 'correct'); updateScore(100); } else { showFeedback('Helaas, dat is niet correct.', 'incorrect'); }
+        if (isCorrect) { 
+            showFeedback('Correct! +100 punten', 'correct'); 
+            updateScore(100); 
+        } else { 
+            showFeedback('Helaas, dat is niet correct.', 'incorrect'); 
+            incorrectAnswersLog.push({
+                question: questionData.question,
+                yourAnswer: selectedOption.textContent,
+                correctAnswer: correctAnswer,
+                explanation: `Het juiste antwoord was '${correctAnswer}'.`
+            });
+        }
         taskCompleted(questionContainer, true);
     }
     
-    function checkMultiChoiceAnswer(optionsContainer, correctAnswers, taskContainer) {
+    function checkMultiChoiceAnswer(optionsContainer, correctAnswers, taskContainer, questionData) {
         if (taskContainer.classList.contains('completed')) return;
         let correctSelections = 0, incorrectSelections = 0;
+        const selectedOptions = [];
         optionsContainer.querySelectorAll('.option').forEach(opt => {
             opt.style.pointerEvents = 'none';
-            const isCorrect = correctAnswers.includes(opt.textContent), isSelected = opt.classList.contains('selected');
+            const isSelected = opt.classList.contains('selected');
+            if (isSelected) selectedOptions.push(opt.textContent);
+            const isCorrect = correctAnswers.includes(opt.textContent);
             if (isSelected && isCorrect) { opt.classList.add('correct'); correctSelections++; } 
             else if (isSelected && !isCorrect) { opt.classList.add('wrong'); incorrectSelections++; } 
             else if (!isSelected && isCorrect) { opt.classList.add('wrong'); }
         });
         const points = Math.max(0, (correctSelections * 75) - (incorrectSelections * 25));
-        if (points > 0) { showFeedback(`Gedeeltelijk correct! +${points} punten`, 'correct'); updateScore(points); } 
-        else { showFeedback('Helaas, geen punten gescoord.', 'incorrect'); }
+        if (points > 0) { 
+            showFeedback(`Gedeeltelijk correct! +${points} punten`, 'correct'); 
+            updateScore(points); 
+        } else { 
+            showFeedback('Helaas, geen punten gescoord.', 'incorrect');
+            incorrectAnswersLog.push({
+                question: questionData.question,
+                yourAnswer: selectedOptions.join(', ') || 'Geen',
+                correctAnswer: correctAnswers.join(', '),
+                explanation: 'Vergelijk de geselecteerde antwoorden met de juiste antwoorden.'
+            });
+        }
         taskCompleted(taskContainer, true);
     }
 
-     function checkDragDropAnswer(ddContainer, taskContainer) {
+     function checkDragDropAnswer(ddContainer, taskContainer, minigameData) {
         if (taskContainer.classList.contains('completed')) return;
         let correctPlacements = 0;
         const zones = ddContainer.querySelectorAll('.drop-zone');
@@ -575,8 +601,18 @@ document.addEventListener('DOMContentLoaded', () => {
             items.forEach(item => { item.style.pointerEvents = 'none'; if (item.dataset.answer === category) { item.style.backgroundColor = 'var(--primary-green)'; correctPlacements++; } else { item.style.backgroundColor = '#8b0000'; } });
         });
         const points = correctPlacements * 50;
-        if (points > 0) { showFeedback(`Goed werk! ${correctPlacements} items correct geplaatst. +${points} punten`, 'correct'); updateScore(points); } 
-        else { showFeedback('Geen items correct geplaatst.', 'incorrect'); }
+        if (points > 0) { 
+            showFeedback(`Goed werk! ${correctPlacements} items correct geplaatst. +${points} punten`, 'correct'); 
+            updateScore(points); 
+        } else { 
+            showFeedback('Geen items correct geplaatst.', 'incorrect'); 
+            incorrectAnswersLog.push({
+                question: minigameData.question,
+                yourAnswer: "Incorrecte plaatsing",
+                correctAnswer: "Zie de opgelichte items voor de juiste categorieën.",
+                explanation: "Elk item heeft een specifieke categorie waar het thuishoort."
+            });
+        }
         taskCompleted(taskContainer, true);
     }
 
@@ -603,8 +639,20 @@ document.addEventListener('DOMContentLoaded', () => {
         
         mainInput.style.borderColor = (mainUserAnswer === mainCorrectAnswer) ? 'var(--primary-green)' : '#8b0000';
 
-        if (allCorrect) { showFeedback('Uitstekend werk, Agent! +250 punten', 'correct'); updateScore(250); } 
-        else { showFeedback(`Incorrect. Controleer je berekening.`, 'incorrect'); }
+        if (allCorrect) { 
+            showFeedback('Uitstekend werk, Agent! +250 punten', 'correct'); 
+            updateScore(250); 
+        } else { 
+            showFeedback(`Incorrect. Controleer je berekening.`, 'incorrect');
+            const yourAnswerText = minigameData.intermediateQuestion ? `Tussenstap: ${gameContainer.querySelector('#minigame-intermediate-input').value}, Eindantwoord: ${mainInput.value}` : mainInput.value;
+            const correctAnswerText = minigameData.intermediateQuestion ? `Tussenstap: ${minigameData.intermediateAnswer}, Eindantwoord: ${minigameData.answer}` : minigameData.answer;
+            incorrectAnswersLog.push({
+                question: minigameData.question,
+                yourAnswer: yourAnswerText || 'Leeg',
+                correctAnswer: correctAnswerText,
+                explanation: minigameData.hint || 'Controleer de berekening en de gebruikte formules.'
+            });
+        }
         
         mainInput.disabled = true;
         gameContainer.querySelector('#minigame-intermediate-input')?.setAttribute('disabled', true);
@@ -612,6 +660,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Algemene Game Flow --- //
+    
+    function displayIncorrectAnswers() {
+        const feedbackContainer = document.getElementById('feedback-container');
+        feedbackContainer.innerHTML = ''; // Clear previous feedback
+
+        if (incorrectAnswersLog.length > 0) {
+            let html = '<h3>Feedback op Foute Antwoorden</h3>';
+            incorrectAnswersLog.forEach(item => {
+                html += `
+                    <div class="feedback-item">
+                        <p><strong>Vraag:</strong> ${item.question}</p>
+                        <p><strong>Jouw antwoord:</strong> ${item.yourAnswer}</p>
+                        <p><strong>Correct antwoord:</strong> ${item.correctAnswer}</p>
+                        ${item.explanation ? `<p class="explanation"><strong>Uitleg:</strong> ${item.explanation}</p>` : ''}
+                    </div>
+                `;
+            });
+            feedbackContainer.innerHTML = html;
+        }
+    }
     
     function taskCompleted(taskContainer, isCorrect) {
         if (taskContainer && taskContainer.classList.contains('completed')) return;
@@ -658,7 +726,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cleanupListeners();
         if (activeGameLoopId) cancelAnimationFrame(activeGameLoopId);
         finalAgentName.textContent = agentName; finalScoreDisplay.textContent = score;
-        saveAndShowHighscores(); showScreen('end');
+        saveAndShowHighscores();
+        displayIncorrectAnswers();
+        showScreen('end');
     }
 
     function saveAndShowHighscores() {
@@ -674,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showScreen('classSelection');
     }
 
-    // --- CANVAS MINIGAME FUNCTIES --- //
+    // --- CANVAS MINIGAME FUNCTIES (blijven ongewijzigd) --- //
     
     function drawGrid(ctx, width, height, divSize) {
         ctx.strokeStyle = "rgba(57, 255, 20, 0.4)"; ctx.lineWidth = 1;
@@ -1315,7 +1385,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Functie om de game te starten na klassenkeuze
         function proceedToGame() {
             classSelectionScreen.style.display = 'none';
+            screens.intro.style.display = 'flex'; // Toon de intro screen
             gameContainer.style.display = 'block';
+
             agentNameInput.style.display = 'none';
             startButton.style.display = 'none';
             animateText(introTextElement, storyIntro, () => {
