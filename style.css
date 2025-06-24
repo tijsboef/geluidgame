@@ -18,7 +18,6 @@ body {
     margin: 0;
     padding: 20px;
     box-sizing: border-box;
-    overflow: hidden;
 }
 
 /* --- Laadscherm --- */
@@ -28,6 +27,11 @@ body {
     align-items: center;
     width: 100vw;
     height: 100vh;
+    position: fixed; /* Zorgt ervoor dat het laadscherm de viewport vult zonder scrollbars te veroorzaken */
+    top: 0;
+    left: 0;
+    background-color: var(--secondary-dark-gray);
+    z-index: 2000;
 }
 
 #loader-icon {
@@ -70,6 +74,11 @@ body {
 /* --- Klassenkeuze Scherm --- */
 #class-selection-screen {
     text-align: center;
+    display: none; /* Wordt getoond via JS */
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 500px;
 }
 
 #class-selection-screen h2 {
