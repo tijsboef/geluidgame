@@ -3,33 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geluidsgolven: Operation UnMute</title>
+    <title>Geluidsgolven: De Dalton Missie</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Browser tab icoon -->
     <link rel="icon" type="image/png" href="divisie_dalton_logo.png">
 </head>
 <body>
 
+    <!-- Laadscherm met radar animatie -->
     <div id="loader-screen">
-        <img src="divisie_dalton_logo.png" id="loader-icon" alt="Divisie Dalton Logo Laden...">
+        <img src="divisie_dalton_logo.png" id="loader-icon" alt="Laden...">
     </div>
     
-    <div id="class-selection-screen" class="screen" style="display: none;">
-         <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Divisie Dalton Logo">
-         <h2>Identificeer je Eenheid</h2>
-         <p>Selecteer je klas om de juiste missieparameters te laden.</p>
-         <div class="button-row">
+    <!-- Klassenkeuze Scherm (Differentiëring) -->
+    <div id="class-selection-screen" class="screen">
+         <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Logo">
+         <h2>IDENTIFICEER EENHEID</h2>
+         <p>Selecteer je niveau om de missieparameters te laden.</p>
+         <div class="button-column">
             <button id="class-vmbo-btn" class="btn">2VMBO</button>
             <button id="class-gha-btn" class="btn">2GHA</button>
+            <button id="class-tl-btn" class="btn">4VMBO-TL</button>
          </div>
     </div>
 
-
+    <!-- Hoofdcontainer van het spel -->
     <div id="game-container" style="display: none;">
         <header id="game-header">
-            <h1 class="title">Operation UnMute</h1>
+            <h1 class="title">Dalton Missie</h1>
             <div id="score-board">
                 <span>Score: <span id="score">0</span></span>
                 <span>Agent: <span id="agent-name-display">N/A</span></span>
@@ -37,38 +41,43 @@
         </header>
 
         <main id="game-screen">
-            <div id="intro-screen" class="screen active">
+            <!-- Introductie Scherm -->
+            <div id="intro-screen" class="screen">
                 <div class="mission-briefing">
                     <h2>Missie Briefing</h2>
                     <p id="intro-text"></p>
-                    <input type="text" id="agent-name-input" placeholder="Jouw Agentnaam">
-                    <button id="start-button" class="btn">Start Missie</button>
+                    <input type="text" id="agent-name-input" placeholder="Codenaam Agent...">
+                    <button id="start-button" class="btn">Activeer</button>
                 </div>
             </div>
 
+            <!-- Dynamisch Level Scherm -->
             <div id="level-screen" class="screen">
                 <h2 id="level-title"></h2>
-                <div id="level-content">
-                    </div>
+                <div id="level-content"></div>
                 <div id="feedback" class="feedback-message"></div>
-                <button id="next-button" class="btn hidden">Volgende</button>
+                <button id="next-button" class="btn hidden">Volgende Missie</button>
             </div>
 
+            <!-- Eind Scherm met Resultaten en Feedback -->
             <div id="end-screen" class="screen">
-                <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Divisie Dalton Logo">
-                <h2>Missie Voltooid!</h2>
-                <p>Uitstekend werk we hebben voorkomen dat SILENT hun Mute technologie heeft kunnen inzetten! Bedankt voor je inzet, Agent <span id="final-agent-name"></span>!</p>
-                <p>Je eindscore is: <span id="final-score"></span></p>
-                <h3>Top 5 Agenten</h3>
-                <ol id="highscore-list">
-                    </ol>
+                <img src="divisie_dalton_logo.png" class="end-screen-logo" alt="Logo">
+                <h2>OPERATIE VOLTOOID</h2>
+                <p>Agent: <span id="final-agent-name"></span></p>
+                <p>Eindscore: <span id="final-score"></span></p>
+                
+                <div id="highscore-section">
+                    <h3>Top 5 Agenten</h3>
+                    <ol id="highscore-list"></ol>
+                </div>
+
                 <div id="feedback-container"></div>
-                <button id="restart-button" class="btn">Speel Opnieuw</button>
+                
+                <button id="restart-button" class="btn">Nieuwe Briefing</button>
             </div>
         </main>
     </div>
 
     <script src="script.js"></script>
 </body>
-</html>
 </html>
