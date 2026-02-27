@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartButton = document.getElementById('restart-button');
     const vmboButton = document.getElementById('class-vmbo-btn');
     const ghaButton = document.getElementById('class-gha-btn');
+    const tlButton = document.getElementById('class-tl-btn'); // NIEUW: TL knop
 
     // --- Game State --- //
     let currentLevelIndex = -1;
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let levelTasks = 0;
     let completedTasks = 0;
     let activeGameLoopId = null; 
-    let playerClass = ''; // 'VMBO' or 'GHA'
+    let playerClass = ''; // 'VMBO', 'GHA' or 'TL'
     let incorrectAnswersLog = [];
     
     // --- Verhaal --- //
@@ -89,6 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { question: "Een violist draait aan de stemknop om de spanning van een snaar te verhogen. Wat voor effect heeft dit op het geluid?", options: ["De toon wordt lager", "Het volume wordt zachter", "Er verandert niets", "De toon wordt hoger"], answer: "De toon wordt hoger" },
         { question: "Twee identieke snaren worden even strak gespannen. Snaar A is van staal (zwaarder), snaar B is van nylon (lichter). Welke snaar produceert waarschijnlijk een hogere toon?", options: ["Snaar A", "Snaar B", "Ze produceren dezelfde toon", "Geen van beide produceert een toon"], answer: "Snaar B" },
     ];
+
+    // NIEUW: mission3_minigame nu als object met VMBO, GHA én TL varianten
     const mission3_minigame = {
         GHA: [
             { title: "Analyse: Sterkte Inschatten", description: "500 van onze supporters produceren 75 dB. Een vijandelijke menigte produceert 93 dB.", question: "Hoeveel supporters van SILENT juichen er?", options: ["4.000", "16.000", "32.000", "64.000"], answer: "32.000", hint: "Het verschil is 93 - 75 = 18 dB. Elke +3 dB is een verdubbeling. Hoe vaak past 3 in 18? (6 keer). Je moet het aantal supporters dus 6 keer verdubbelen." },
@@ -101,6 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
             { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De agent meet een te lage waarde als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "groter" },
             { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De scooterrijder kan ten onrechte een boete krijgen als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "kleiner" },
             { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De scooter wordt onterecht goedgekeurd als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "groter" },
+        ],
+        // NIEUW: TL variant overgenomen uit Document 1
+        TL: [
+            { title: "Analyse: Afstand & dB", description: "Op 5m is het niveau 120 dB. Verdubbeling van de afstand geeft -6 dB.", question: "Wat is het geluidsniveau op 40 meter?", options: ["114 dB", "108 dB", "102 dB", "96 dB"], answer: "102 dB", hint: "5->10 (1 verdubbeling), 10->20 (2), 20->40 (3). 120 - (3*6) = 102 dB." },
+            { title: "Analyse: Intensiteit Percentage", description: "Een demper verlaagt het niveau van 104 naar 95 dB (-9 dB).", question: "Hoeveel procent van het geluid blijft er over?", options: ["50%", "25%", "12.5%", "6.25%"], answer: "12.5%", hint: "Elke -3 dB = helft van het geluid. -9 dB = 3 stappen. 100% -> 50% -> 25% -> 12.5%." },
+            { title: "Analyse: Keer zo hard", description: "Vergelijk een bron van 83 dB met een bron van 68 dB. Elke +3 dB is een verdubbeling van de intensiteit.", question: "Hoeveel keer zo hard is de 83 dB bron?", options: ["5 keer", "15 keer", "32 keer", "64 keer"], answer: "32 keer", hint: "Verschil = 83 - 68 = 15 dB. 15 / 3 = 5 stappen van 3. 2^5 = 32." },
+            { title: "Analyse: Afstand & dB Expert", description: "Op 10m is het niveau 100 dB. De afstand stijgt naar 80m.", question: "Wat is het nieuwe geluidsniveau in dB?", options: ["88 dB", "82 dB", "76 dB", "94 dB"], answer: "82 dB", hint: "10->20->40->80 = 3 verdubbelingen van de afstand. 100 - (3*6) = 82 dB." },
         ]
     };
     
@@ -145,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'theory_with_canvas',
             canvasPreamble: initAmplitudeComparison,
             questions: [mission3_q1, mission3_q2],
-            minigame: mission3_minigame // Dit wordt nu een object met VMBO/GHA opties
+            minigame: mission3_minigame // Object met VMBO, GHA én TL varianten
         },
         {
             title: "Trainingsmissie 3: Stealth Operatie", type: 'minigame_only', init: initStealthGame,
@@ -213,8 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (levelData.minigame) {
             let minigameGroup = levelData.minigame;
-            // Gedifferentieerde logica voor Missie 3
-            if (currentLevelIndex === 4 && levelData.minigame.GHA && levelData.minigame.VMBO) {
+            // BIJGEWERKT: Gedifferentieerde logica nu ook voor TL
+            if (currentLevelIndex === 4 && levelData.minigame[playerClass]) {
                  minigameGroup = levelData.minigame[playerClass];
             }
             const mgKey = `m${currentLevelIndex}mg_${playerClass}`;
@@ -238,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startGame() {
-        incorrectAnswersLog = []; // Reset het logboek bij een nieuw spel
+        incorrectAnswersLog = [];
         agentName = agentNameInput.value || "Nieuweling";
         agentNameDisplay.textContent = agentName;
         score = 0;
@@ -480,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameAreaWrapper.className = 'game-area-wrapper';
         gameAreaWrapper.style.display = 'flex';
         gameAreaWrapper.style.alignItems = 'center'; 
-        gameAreaWrapper.style.gap = '20px'; // Space between canvas and info panel
+        gameAreaWrapper.style.gap = '20px';
         gameAreaWrapper.style.justifyContent = 'center';
         
         const canvasContainer = document.createElement('div');
@@ -663,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function displayIncorrectAnswers() {
         const feedbackContainer = document.getElementById('feedback-container');
-        feedbackContainer.innerHTML = ''; // Clear previous feedback
+        feedbackContainer.innerHTML = '';
 
         if (incorrectAnswersLog.length > 0) {
             let html = '<h3>Feedback op Foute Antwoorden</h3>';
@@ -733,10 +743,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveAndShowHighscores() {
         const highscores = JSON.parse(localStorage.getItem('daltonHighscores')) || [];
-        highscores.push({ name: agentName, score: score });
+        highscores.push({ name: agentName, score: score, class: playerClass });
         highscores.sort((a, b) => b.score - a.score); const top5 = highscores.slice(0, 5);
         localStorage.setItem('daltonHighscores', JSON.stringify(top5));
-        highscoreList.innerHTML = ''; top5.forEach(entry => { const li = document.createElement('li'); li.textContent = `${entry.name} - ${entry.score} punten`; highscoreList.appendChild(li); });
+        highscoreList.innerHTML = ''; top5.forEach(entry => { const li = document.createElement('li'); li.textContent = `${entry.name} (${entry.class}) - ${entry.score} punten`; highscoreList.appendChild(li); });
     }
     
     function restartGame() {
@@ -744,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showScreen('classSelection');
     }
 
-    // --- CANVAS MINIGAME FUNCTIES (blijven ongewijzigd) --- //
+    // --- CANVAS MINIGAME FUNCTIES --- //
     
     function drawGrid(ctx, width, height, divSize) {
         ctx.strokeStyle = "rgba(57, 255, 20, 0.4)"; ctx.lineWidth = 1;
@@ -879,8 +889,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillRect(0, 0, width, height); 
         drawGrid(ctx, width, height, divSize); 
         ctx.beginPath(); 
-        ctx.strokeStyle = '#39FF14'; // Brighter Neon Green
-        ctx.lineWidth = 2.5; // Slightly thicker line
+        ctx.strokeStyle = '#39FF14';
+        ctx.lineWidth = 2.5;
 
         const centerY = height / 2;
         const amplitude = height / 4;
@@ -927,17 +937,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let targetWave = {}, playerWave = {}, clickWaves = [];
         
         const round1Variants = [
-            { type: 'match', timebase: 10, targetFreqDivs: 4 }, // T=40ms, f=25Hz
-            { type: 'match', timebase: 10, targetFreqDivs: 2 }, // T=20ms, f=50Hz
-            { type: 'match', timebase: 5,  targetFreqDivs: 8 }, // T=40ms, f=25Hz
-            { type: 'match', timebase: 2,  targetFreqDivs: 10}, // T=20ms, f=50Hz
+            { type: 'match', timebase: 10, targetFreqDivs: 4 },
+            { type: 'match', timebase: 10, targetFreqDivs: 2 },
+            { type: 'match', timebase: 5,  targetFreqDivs: 8 },
+            { type: 'match', timebase: 2,  targetFreqDivs: 10},
         ];
 
         const round2Variants = [
-            { type: 'match', timebase: 5, targetFreqDivs: 5 },  // T=25ms, f=40Hz
-            { type: 'match', timebase: 5, targetFreqDivs: 4 },  // T=20ms, f=50Hz
-            { type: 'match', timebase: 2, targetFreqDivs: 10 }, // T=20ms, f=50Hz
-            { type: 'match', timebase: 1, targetFreqDivs: 20 }, // T=20ms, f=50Hz
+            { type: 'match', timebase: 5, targetFreqDivs: 5 },
+            { type: 'match', timebase: 5, targetFreqDivs: 4 },
+            { type: 'match', timebase: 2, targetFreqDivs: 10 },
+            { type: 'match', timebase: 1, targetFreqDivs: 20 },
         ];
 
         const round3Variants = [
@@ -979,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('freq-down-btn').onclick = () => { if(playerWave.divs < 20) playerWave.divs++; };
                 document.getElementById('freq-up-btn').onclick = () => { if(playerWave.divs > 1) playerWave.divs--; };
                 document.getElementById('confirm-freq-btn').onclick = checkMatch;
-            } else { // 'click' round
+            } else {
                 stat3.textContent = `Klik op de pijl naast de ${data.targetFreqHz} Hz golf.`;
                 controlsContainer.innerHTML = ''; 
                 
@@ -1242,8 +1252,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.globalAlpha = 1.0;
             
             const meterHeight = height * 0.4, meterWidth = 30;
-            const meterX = width - 45; // Iets naar rechts verplaatst
-            const meterY = height - meterHeight - 20; // Wat hoger geplaatst
+            const meterX = width - 45;
+            const meterY = height - meterHeight - 20;
             ctx.fillStyle = '#333'; ctx.fillRect(meterX, meterY, meterWidth, meterHeight);
             ctx.strokeStyle = 'white'; ctx.strokeRect(meterX, meterY, meterWidth, meterHeight);
 
@@ -1290,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 x: width,
                 y: Math.random() * (height - 30),
                 width: 30,
-                height: 30, // Wordt gebruikt voor bounding box van cirkel
+                height: 30,
                 speed: baseSpeed + Math.random() * speedVariation,
                 harmful: isHarmful
             });
@@ -1310,14 +1320,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const baseSpeed = 5 + (gameTime / 600);
                 const speedVariation = 2 + (gameTime / 1200);
 
-                // Spawn een schadelijk object
                 spawnObject(true, baseSpeed, speedVariation);
 
                 if (gameTime > 600 && Math.random() < 0.40) {
                     spawnObject(true, baseSpeed, speedVariation);
                 }
 
-                // Kans op een nuttig object wordt groter over tijd
                 const helpfulChance = Math.min(0.55, 0.15 + (gameTime / 4000));
                 if (Math.random() < helpfulChance) {
                     spawnObject(false, baseSpeed * 0.9, speedVariation);
@@ -1329,7 +1337,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(obj.x < -obj.width) {
                     objects.splice(index, 1);
                 }
-                // Simpele AABB collision check blijft effectief
                 if(player.x < obj.x + obj.width && player.x + player.width > obj.x && player.y < obj.y + obj.height && player.y + player.height > obj.y) {
                     if(obj.harmful) { 
                         lives--; 
@@ -1351,10 +1358,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             objects.forEach(obj => { 
                 if (obj.harmful) {
-                    ctx.fillStyle = '#ff4d4d'; // Rood
+                    ctx.fillStyle = '#ff4d4d';
                     ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
                 } else {
-                    ctx.fillStyle = 'var(--accent-lime-green)'; // Groen
+                    ctx.fillStyle = 'var(--accent-lime-green)';
                     ctx.beginPath();
                     ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
                     ctx.fill();
@@ -1382,10 +1389,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners & Initialisatie --- //
     function initializeApp() {
-        // Functie om de game te starten na klassenkeuze
         function proceedToGame() {
             classSelectionScreen.style.display = 'none';
-            screens.intro.style.display = 'flex'; // Toon de intro screen
+            screens.intro.style.display = 'flex';
             gameContainer.style.display = 'block';
 
             agentNameInput.style.display = 'none';
@@ -1407,11 +1413,19 @@ document.addEventListener('DOMContentLoaded', () => {
             proceedToGame();
         });
 
+        // NIEUW: TL knop event listener
+        if (tlButton) {
+            tlButton.addEventListener('click', () => {
+                playerClass = 'TL';
+                proceedToGame();
+            });
+        }
+
         // Toon laadscherm en daarna klassenkeuze
         setTimeout(() => {
             if (loaderScreen) loaderScreen.style.display = 'none';
             if (classSelectionScreen) classSelectionScreen.style.display = 'flex';
-        }, 2500); // Wacht 2.5s om het laad-icoon te tonen
+        }, 2500);
 
         // Standaard game listeners
         startButton.addEventListener('click', startGame);
