@@ -1,8 +1,8 @@
 /* --- Algemene Stijlen & Kleurenpalet --- */
 :root {
     --primary-green: #006400; /* Dalton Hoofdgroen */
-    --secondary-dark-gray: #1E1E1E; /* Interface Donkergrijs */
-    --accent-lime-green: #32CD32; /* Actie & Hightech Groen */
+    --secondary-dark-gray: #0a0f0d; /* Dieper donker voor hacker vibe */
+    --accent-lime-green: #39FF14; /* Actie & Hightech Neon Groen */
     --text-ui-white: #E0E0E0; /* Scherm Wit */
     --font-family: 'Roboto Mono', monospace;
 }
@@ -18,6 +18,22 @@ body {
     margin: 0;
     padding: 20px;
     box-sizing: border-box;
+    position: relative;
+}
+
+/* CRT Scanline Effect Overlay */
+body::after {
+    content: " ";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 9999;
+    background-size: 100% 3px, 6px 100%;
+    pointer-events: none;
 }
 
 /* --- Laadscherm --- */
@@ -27,7 +43,7 @@ body {
     align-items: center;
     width: 100vw;
     height: 100vh;
-    position: fixed; /* Zorgt ervoor dat het laadscherm de viewport vult zonder scrollbars te veroorzaken */
+    position: fixed; 
     top: 0;
     left: 0;
     background-color: var(--secondary-dark-gray);
@@ -39,56 +55,68 @@ body {
     height: 150px;
     border-radius: 50%;
     border: 5px solid var(--accent-lime-green);
-    box-shadow: 0 0 25px var(--accent-lime-green);
-    animation: radar-pulse 2.5s ease-in-out infinite;
+    box-shadow: 0 0 25px var(--accent-lime-green), inset 0 0 15px var(--accent-lime-green);
+    animation: radar-pulse 2s ease-out infinite;
 }
 
 @keyframes radar-pulse {
-    0% {
-        transform: scale(0.9);
-        opacity: 0.8;
-        box-shadow: 0 0 15px var(--accent-lime-green);
-    }
-    50% {
-        transform: scale(1.0);
-        opacity: 1;
-        box-shadow: 0 0 35px var(--accent-lime-green);
-    }
-    100% {
-        transform: scale(0.9);
-        opacity: 0.8;
-        box-shadow: 0 0 15px var(--accent-lime-green);
-    }
+    0% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 10px var(--accent-lime-green); }
+    50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 50px var(--accent-lime-green); }
+    100% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 10px var(--accent-lime-green); }
 }
 
 #game-container {
     width: 100%;
     max-width: 900px;
     border: 2px solid var(--accent-lime-green);
-    border-radius: 15px;
-    padding: 20px;
-    background-color: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 20px rgba(50, 205, 50, 0.4);
+    border-radius: 12px;
+    padding: 25px;
+    background-color: rgba(0, 20, 0, 0.4);
+    box-shadow: 0 0 30px rgba(57, 255, 20, 0.15), inset 0 0 20px rgba(57, 255, 20, 0.05);
+    position: relative;
+    z-index: 10;
+}
+
+/* Screen Shake Animatie bij fout antwoord */
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(0px, 0px) rotate(0deg); }
+}
+
+.shake {
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 /* --- Klassenkeuze Scherm --- */
 #class-selection-screen {
     text-align: center;
-    display: none; /* Wordt getoond via JS */
+    display: none;
     flex-direction: column;
     gap: 20px;
     width: 100%;
     max-width: 500px;
+    z-index: 10;
 }
 
 #class-selection-screen h2 {
     color: var(--accent-lime-green);
+    text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    letter-spacing: 2px;
 }
 
-.button-row {
+.button-column {
     display: flex;
-    justify-content: center;
-    gap: 20px;
+    flex-direction: column;
+    gap: 15px;
     margin-top: 20px;
 }
 
@@ -97,274 +125,218 @@ header#game-header {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--accent-lime-green);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+    padding-bottom: 15px;
+    margin-bottom: 25px;
 }
 
 .title {
-    color: var(--primary-green);
-    text-shadow: 0 0 5px var(--primary-green);
+    color: var(--accent-lime-green);
+    text-shadow: 0 0 15px rgba(57, 255, 20, 0.6);
     margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 #score-board {
     display: flex;
-    gap: 20px;
-    font-size: 0.9em;
+    gap: 25px;
+    font-size: 1em;
+    font-weight: bold;
+    color: var(--accent-lime-green);
 }
 
 /* --- Schermen --- */
-.screen {
-    display: none; /* Standaard verborgen */
-    flex-direction: column;
-    gap: 20px;
-}
-
-.screen.active {
-    display: flex; /* Actief scherm tonen */
-}
+.screen { display: none; flex-direction: column; gap: 20px; }
+.screen.active { display: flex; }
 
 /* Eindscherm Logo */
 .end-screen-logo {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 3px solid var(--primary-green);
+    border: 3px solid var(--accent-lime-green);
+    box-shadow: 0 0 20px var(--accent-lime-green);
     align-self: center;
     margin-bottom: 10px;
 }
 
-
 /* --- Knoppen & Interactieve Elementen --- */
 .btn {
-    background-color: var(--accent-lime-green);
-    color: var(--secondary-dark-gray);
+    background-color: transparent;
+    color: var(--accent-lime-green);
     font-family: var(--font-family);
     font-weight: bold;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    border: 2px solid var(--accent-lime-green);
+    padding: 12px 25px;
+    border-radius: 4px;
     cursor: pointer;
     text-transform: uppercase;
-    transition: all 0.2s ease-in-out;
-    align-self: center; /* Knoppen centreren in hun container */
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    align-self: center;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn:hover, .btn:focus {
-    background-color: var(--text-ui-white);
-    box-shadow: 0 0 15px var(--accent-lime-green);
+    background-color: var(--accent-lime-green);
+    color: var(--secondary-dark-gray);
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.8);
 }
 
-.btn.hidden {
-    display: none;
-}
-
-.btn.select-wave-btn {
-    position: absolute;
-    left: -60px; /* Meer ruimte van de rand */
-    transform: translateY(-50%); /* Cruciaal voor perfecte verticale centrering */
-    font-size: 1.5em;
-    padding: 0px 12px;
-    line-height: 1.2;
-    text-transform: none;
-}
+.btn.hidden { display: none; }
 
 input[type="text"] {
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 20, 0, 0.6);
     border: 1px solid var(--accent-lime-green);
-    color: var(--text-ui-white);
-    padding: 10px;
-    border-radius: 5px;
+    color: var(--accent-lime-green);
+    padding: 12px;
+    border-radius: 4px;
     font-family: var(--font-family);
     text-align: center;
+    font-size: 1em;
+    transition: box-shadow 0.3s;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.5);
 }
 
 /* --- Vraag & Antwoord Stijlen --- */
 .question-container {
-    background-color: rgba(0, 0, 0, 0.2);
-    padding: 20px;
+    background-color: rgba(0, 20, 0, 0.3);
+    padding: 25px;
     border-radius: 8px;
-    border-left: 3px solid var(--primary-green);
-    margin-bottom: 15px; /* Ruimte tussen de taken */
+    border-left: 4px solid var(--accent-lime-green);
+    margin-bottom: 20px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .options-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
+    gap: 12px;
+    margin-top: 20px;
 }
 
 .option {
-    background-color: rgba(50, 205, 50, 0.1);
-    border: 1px solid var(--accent-lime-green);
-    padding: 12px;
-    border-radius: 5px;
+    background-color: rgba(57, 255, 20, 0.05);
+    border: 1px solid rgba(57, 255, 20, 0.3);
+    padding: 15px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
 }
 
 .option:hover {
-    background-color: rgba(50, 205, 50, 0.3);
+    background-color: rgba(57, 255, 20, 0.15);
+    border-color: var(--accent-lime-green);
 }
 
 .option.selected {
-    background-color: var(--accent-lime-green);
-    color: var(--secondary-dark-gray);
-    font-weight: bold;
+    background-color: rgba(57, 255, 20, 0.3);
+    border-color: var(--accent-lime-green);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
 }
 
 .option.correct {
     background-color: var(--primary-green) !important;
+    border-color: var(--accent-lime-green) !important;
     color: var(--text-ui-white) !important;
+    box-shadow: 0 0 15px var(--primary-green);
 }
 
 .option.wrong {
     background-color: #8b0000 !important;
+    border-color: #ff4d4d !important;
     color: var(--text-ui-white) !important;
+    box-shadow: 0 0 15px #8b0000;
 }
-
 
 /* --- Feedback Popup --- */
 .feedback-popup {
     position: fixed;
-    bottom: 30px;
+    bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 15px 30px;
-    border-radius: 8px;
+    padding: 15px 35px;
+    border-radius: 4px;
     font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1.2em;
     z-index: 1000;
     opacity: 0;
-    transition: opacity 0.3s ease-in-out, bottom 0.3s ease-in-out;
+    transition: opacity 0.3s, bottom 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.feedback-popup.show {
-    bottom: 50px;
-    opacity: 1;
-}
+.feedback-popup.show { bottom: 60px; opacity: 1; }
 
 .feedback-popup.correct {
-    background-color: var(--primary-green);
-    color: var(--text-ui-white);
-    box-shadow: 0 0 15px var(--primary-green);
+    background-color: rgba(0, 100, 0, 0.9);
+    border: 2px solid var(--accent-lime-green);
+    color: var(--accent-lime-green);
+    box-shadow: 0 0 20px var(--primary-green);
 }
 
 .feedback-popup.incorrect {
-    background-color: #8b0000;
-    color: var(--text-ui-white);
-    box-shadow: 0 0 15px #ff0000;
+    background-color: rgba(139, 0, 0, 0.9);
+    border: 2px solid #ff4d4d;
+    color: #ff4d4d;
+    box-shadow: 0 0 20px #8b0000;
 }
 
 /* --- Canvas voor Minigames --- */
 .level-canvas {
     border: 2px solid var(--accent-lime-green);
-    border-radius: 8px;
+    border-radius: 4px;
     display: block;
-    margin: 0; /* Verwijder auto margin, flexbox regelt centrering */
+    margin: 0;
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.2);
+    image-rendering: pixelated; /* Voor scherpere pixel-look */
 }
 
 /* --- Drag and Drop --- */
 .drop-zone {
-    border: 2px dashed var(--accent-lime-green);
+    border: 2px dashed rgba(57, 255, 20, 0.5);
     border-radius: 8px;
     padding: 20px;
-    margin-top: 10px;
+    margin-top: 15px;
     min-height: 100px;
-    background-color: rgba(0,0,0,0.3);
+    background-color: rgba(0,0,0,0.4);
+    transition: background-color 0.3s;
 }
 .draggable {
     background-color: var(--primary-green);
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    cursor: grab;
-}
-.drop-zone.hover {
-    background-color: rgba(50, 205, 50, 0.2);
-}
-
-/* --- Highscore Lijst --- */
-#highscore-list {
-    list-style-type: decimal;
-    padding-left: 40px;
-}
-
-#highscore-list li {
-    padding: 5px 0;
-    font-size: 1.1em;
-}
-
-/* --- Minigame Status Display --- */
-#game-stats {
     border: 1px solid var(--accent-lime-green);
-    background-color: rgba(0, 20, 0, 0.5);
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 20px;
-}
-
-#game-stats h4 {
-    margin: 0 0 10px 0;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--primary-green);
-    color: var(--accent-lime-green);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 0.9em;
-}
-
-#game-stats .stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 8px 15px;
-}
-
-#game-stats span {
-    background-color: rgba(0,0,0,0.3);
-    padding: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
     border-radius: 4px;
-    font-size: 0.9em;
-    display: block;
+    cursor: grab;
+    transition: transform 0.2s;
 }
+.draggable:active { transform: scale(0.95); cursor: grabbing; }
+.drop-zone.hover { background-color: rgba(57, 255, 20, 0.15); border-color: var(--accent-lime-green); }
 
-#game-stats .stat-message {
-    grid-column: 1 / -1; 
-    margin-top: 10px;
-    text-align: center;
-    font-style: italic;
-    color: var(--accent-lime-green);
-}
+/* --- Highscore Lijst & Stats --- */
+#highscore-list { list-style-type: decimal; padding-left: 40px; }
+#highscore-list li { padding: 8px 0; font-size: 1.1em; color: var(--accent-lime-green); }
 
-/* --- Eindscherm Feedback --- */
-#feedback-container {
-    margin-top: 30px;
-    text-align: left;
-    border-top: 1px solid var(--primary-green);
-    padding-top: 20px;
+#game-stats {
+    border: 1px solid rgba(57, 255, 20, 0.5);
+    background-color: rgba(0, 20, 0, 0.6);
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 25px;
 }
+#game-stats h4 { margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 1px solid var(--accent-lime-green); color: var(--accent-lime-green); }
+#game-stats span { background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 4px; border: 1px solid rgba(57, 255, 20, 0.2); }
+#game-stats .stat-message { color: var(--accent-lime-green); margin-top: 15px; }
 
-#feedback-container h3 {
-    color: var(--accent-lime-green);
-    text-align: center;
-}
-
-.feedback-item {
-    background-color: rgba(139, 0, 0, 0.2);
-    border-left: 3px solid #8b0000;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-}
-
-.feedback-item p { margin: 5px 0; }
-.feedback-item strong { color: var(--text-ui-white); }
-.feedback-item .explanation {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    font-style: italic;
-    opacity: 0.9;
-    color: #ffc0cb; /* Lichte roze kleur voor de uitleg */
-}
+/* Eindscherm Feedback */
+#feedback-container { margin-top: 30px; border-top: 2px dashed rgba(57, 255, 20, 0.3); padding-top: 20px; }
+.feedback-item { background-color: rgba(139, 0, 0, 0.15); border-left: 4px solid #ff4d4d; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+.feedback-item strong { color: var(--accent-lime-green); }
+.feedback-item .explanation { color: #ff9999; border-top: 1px dashed rgba(255, 77, 77, 0.3); }
