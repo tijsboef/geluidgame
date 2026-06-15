@@ -1,12 +1,13 @@
 /* --- Algemene Stijlen & Kleurenpalet --- */
 :root {
-    --primary-green: #006400; /* Dalton Hoofdgroen */
-    --secondary-dark-gray: #0a0f0d; /* Dieper donker voor hacker vibe */
-    --accent-lime-green: #39FF14; /* Actie & Hightech Neon Groen */
-    --text-ui-white: #E0E0E0; /* Scherm Wit */
+    --primary-green: #006400; 
+    --secondary-dark-gray: #0a0f0d; 
+    --accent-lime-green: #39FF14; 
+    --text-ui-white: #E0E0E0; 
     --font-family: 'Roboto Mono', monospace;
 }
 
+/* 3D Perspectief aanzetten op de body */
 body {
     background-color: var(--secondary-dark-gray);
     color: var(--text-ui-white);
@@ -19,42 +20,23 @@ body {
     padding: 20px;
     box-sizing: border-box;
     position: relative;
+    perspective: 1200px; /* Cruciaal voor CSS 3D! */
 }
 
 /* CRT Scanline Effect Overlay */
 body::after {
-    content: " ";
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
+    content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    z-index: 9999;
-    background-size: 100% 3px, 6px 100%;
-    pointer-events: none;
+    z-index: 9999; background-size: 100% 3px, 6px 100%; pointer-events: none;
 }
 
-/* --- Laadscherm --- */
 #loader-screen {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100vw;
-    height: 100vh;
-    position: fixed; 
-    top: 0;
-    left: 0;
-    background-color: var(--secondary-dark-gray);
-    z-index: 2000;
+    display: flex; justify-content: center; align-items: center; width: 100vw; height: 100vh;
+    position: fixed; top: 0; left: 0; background-color: var(--secondary-dark-gray); z-index: 2000;
 }
 
 #loader-icon {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    border: 5px solid var(--accent-lime-green);
+    width: 150px; height: 150px; border-radius: 50%; border: 5px solid var(--accent-lime-green);
     box-shadow: 0 0 25px var(--accent-lime-green), inset 0 0 15px var(--accent-lime-green);
     animation: radar-pulse 2s ease-out infinite;
 }
@@ -65,364 +47,146 @@ body::after {
     100% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 10px var(--accent-lime-green); }
 }
 
+/* De Terminal (3D Gekanteld) */
 #game-container {
-    width: 100%;
-    max-width: 900px;
-    border: 2px solid var(--accent-lime-green);
-    border-radius: 12px;
-    padding: 25px;
-    background-color: rgba(0, 20, 0, 0.4);
-    box-shadow: 0 0 30px rgba(57, 255, 20, 0.15), inset 0 0 20px rgba(57, 255, 20, 0.05);
-    position: relative;
-    z-index: 10;
+    width: 100%; max-width: 900px;
+    background-color: rgba(0, 20, 0, 0.8);
+    padding: 25px; border-radius: 12px;
+    
+    /* 3D Styling */
+    transform-style: preserve-3d;
+    transform: rotateX(3deg) translateY(-5px);
+    border-bottom: 8px solid var(--primary-green);
+    border-right: 4px solid var(--primary-green);
+    border-top: 1px solid var(--accent-lime-green);
+    border-left: 1px solid var(--accent-lime-green);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(57, 255, 20, 0.15), inset 0 0 20px rgba(57, 255, 20, 0.05);
+    position: relative; z-index: 10;
+    transition: transform 0.4s ease-out;
 }
 
-/* Screen Shake Animatie bij fout antwoord */
+#game-container:hover {
+    transform: rotateX(0deg) translateY(0px); /* Kantelt recht als je er met de muis over gaat */
+}
+
 @keyframes shake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    10% { transform: translate(-1px, -2px) rotate(-1deg); }
-    20% { transform: translate(-3px, 0px) rotate(1deg); }
-    30% { transform: translate(3px, 2px) rotate(0deg); }
-    40% { transform: translate(1px, -1px) rotate(1deg); }
-    50% { transform: translate(-1px, 2px) rotate(-1deg); }
-    60% { transform: translate(-3px, 1px) rotate(0deg); }
-    70% { transform: translate(3px, 1px) rotate(-1deg); }
-    80% { transform: translate(-1px, -1px) rotate(1deg); }
-    90% { transform: translate(1px, 2px) rotate(0deg); }
-    100% { transform: translate(0px, 0px) rotate(0deg); }
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px) rotateY(-2deg); }
+    40%, 80% { transform: translateX(5px) rotateY(2deg); }
 }
+.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 
-.shake {
-    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-}
+/* Klassenkeuze & Header */
+#class-selection-screen { text-align: center; display: none; flex-direction: column; gap: 20px; width: 100%; max-width: 500px; z-index: 10; }
+#class-selection-screen h2 { color: var(--accent-lime-green); text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); letter-spacing: 2px; }
+.button-column { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 
-/* --- Klassenkeuze Scherm --- */
-#class-selection-screen {
-    text-align: center;
-    display: none;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
-    max-width: 500px;
-    z-index: 10;
-}
+header#game-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--accent-lime-green); padding-bottom: 15px; margin-bottom: 25px; }
+.title { color: var(--accent-lime-green); text-shadow: 0 0 15px rgba(57, 255, 20, 0.6); margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+#score-board { display: flex; gap: 25px; font-size: 1em; font-weight: bold; color: var(--accent-lime-green); }
 
-#class-selection-screen h2 {
-    color: var(--accent-lime-green);
-    text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
-    letter-spacing: 2px;
-}
-
-.button-column {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-header#game-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--accent-lime-green);
-    padding-bottom: 15px;
-    margin-bottom: 25px;
-}
-
-.title {
-    color: var(--accent-lime-green);
-    text-shadow: 0 0 15px rgba(57, 255, 20, 0.6);
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-#score-board {
-    display: flex;
-    gap: 25px;
-    font-size: 1em;
-    font-weight: bold;
-    color: var(--accent-lime-green);
-}
-
-/* --- Schermen --- */
 .screen { display: none; flex-direction: column; gap: 20px; }
 .screen.active { display: flex; }
+.end-screen-logo { width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent-lime-green); box-shadow: 0 0 20px var(--accent-lime-green); align-self: center; margin-bottom: 10px; }
 
-/* Eindscherm Logo */
-.end-screen-logo {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: 3px solid var(--accent-lime-green);
-    box-shadow: 0 0 20px var(--accent-lime-green);
-    align-self: center;
-    margin-bottom: 10px;
-}
-
-/* --- Knoppen & Interactieve Elementen --- */
+/* --- 3D Knoppen --- */
 .btn {
-    background-color: transparent;
+    background-color: var(--secondary-dark-gray);
     color: var(--accent-lime-green);
-    font-family: var(--font-family);
-    font-weight: bold;
-    border: 2px solid var(--accent-lime-green);
-    padding: 12px 25px;
-    border-radius: 4px;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: all 0.3s ease;
-    align-self: center;
-    position: relative;
-    overflow: hidden;
+    font-family: var(--font-family); font-weight: bold;
+    border: 1px solid var(--accent-lime-green);
+    padding: 12px 25px; border-radius: 6px;
+    cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+    align-self: center; position: relative;
+    
+    /* 3D Push Button Effect */
+    transform-style: preserve-3d;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 6px 0 var(--primary-green), 0 12px 15px rgba(0,0,0,0.6);
+    margin-bottom: 6px;
 }
 
 .btn:hover, .btn:focus {
-    background-color: var(--accent-lime-green);
-    color: var(--secondary-dark-gray);
-    box-shadow: 0 0 20px rgba(57, 255, 20, 0.8);
+    transform: translateY(2px) translateZ(10px);
+    box-shadow: 0 4px 0 var(--primary-green), 0 8px 15px rgba(57, 255, 20, 0.4);
+    background-color: rgba(57, 255, 20, 0.1);
 }
 
+.btn:active {
+    transform: translateY(6px);
+    box-shadow: 0 0 0 var(--primary-green), 0 0 5px rgba(57, 255, 20, 0.4);
+    background-color: var(--accent-lime-green);
+    color: var(--secondary-dark-gray);
+}
 .btn.hidden { display: none; }
 
 input[type="text"] {
-    background-color: rgba(0, 20, 0, 0.6);
-    border: 1px solid var(--accent-lime-green);
-    color: var(--accent-lime-green);
-    padding: 12px;
-    border-radius: 4px;
-    font-family: var(--font-family);
-    text-align: center;
-    font-size: 1em;
+    background-color: rgba(0, 20, 0, 0.6); border: 1px solid var(--accent-lime-green); color: var(--accent-lime-green);
+    padding: 12px; border-radius: 4px; font-family: var(--font-family); text-align: center; font-size: 1em;
     transition: box-shadow 0.3s;
 }
+input[type="text"]:focus { outline: none; box-shadow: 0 0 15px rgba(57, 255, 20, 0.5); }
 
-input[type="text"]:focus {
-    outline: none;
-    box-shadow: 0 0 15px rgba(57, 255, 20, 0.5);
-}
-
-/* --- Vraag & Antwoord Stijlen --- */
+/* Vragen Menu 3D Zweef Effect */
 .question-container {
-    background-color: rgba(0, 20, 0, 0.3);
-    padding: 25px;
-    border-radius: 8px;
-    border-left: 4px solid var(--accent-lime-green);
-    margin-bottom: 20px;
+    background-color: rgba(0, 20, 0, 0.3); padding: 25px; border-radius: 8px; border-left: 4px solid var(--accent-lime-green); margin-bottom: 20px;
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
-
-.options-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 20px;
-}
+.options-container { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 
 .option {
-    background-color: rgba(57, 255, 20, 0.05);
-    border: 1px solid rgba(57, 255, 20, 0.3);
-    padding: 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    background-color: rgba(57, 255, 20, 0.05); border: 1px solid rgba(57, 255, 20, 0.3); padding: 15px; border-radius: 4px; cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
+.option:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(57, 255, 20, 0.2); border-color: var(--accent-lime-green); }
+.option.selected { background-color: rgba(57, 255, 20, 0.3); border-color: var(--accent-lime-green); color: #fff; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2); }
+.option.correct { background-color: var(--primary-green) !important; border-color: var(--accent-lime-green) !important; color: var(--text-ui-white) !important; box-shadow: 0 0 15px var(--primary-green); }
+.option.wrong { background-color: #8b0000 !important; border-color: #ff4d4d !important; color: var(--text-ui-white) !important; box-shadow: 0 0 15px #8b0000; }
 
-.option:hover {
-    background-color: rgba(57, 255, 20, 0.15);
-    border-color: var(--accent-lime-green);
-}
-
-.option.selected {
-    background-color: rgba(57, 255, 20, 0.3);
-    border-color: var(--accent-lime-green);
-    color: #fff;
-    box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
-}
-
-.option.correct {
-    background-color: var(--primary-green) !important;
-    border-color: var(--accent-lime-green) !important;
-    color: var(--text-ui-white) !important;
-    box-shadow: 0 0 15px var(--primary-green);
-}
-
-.option.wrong {
-    background-color: #8b0000 !important;
-    border-color: #ff4d4d !important;
-    color: var(--text-ui-white) !important;
-    box-shadow: 0 0 15px #8b0000;
-}
-
-/* --- Feedback Popup --- */
+/* 3D Feedback Popup (Klapt omhoog als een bord) */
 .feedback-popup {
-    position: fixed;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 15px 35px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 1.2em;
-    z-index: 1000;
+    position: fixed; bottom: 40px; left: 50%; padding: 15px 35px; border-radius: 4px; font-weight: bold; font-size: 1.2em; z-index: 1000;
+    text-transform: uppercase; letter-spacing: 1px;
+    
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotateX(-90deg); /* Ligt plat naar achteren */
     opacity: 0;
-    transition: opacity 0.3s, bottom 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
 }
+.feedback-popup.show {
+    transform: translateX(-50%) rotateX(0deg); /* Klapt rechtop */
+    bottom: 60px; opacity: 1;
+}
+.feedback-popup.correct { background-color: rgba(0, 100, 0, 0.95); border: 2px solid var(--accent-lime-green); color: var(--accent-lime-green); box-shadow: 0 15px 25px rgba(0,0,0,0.8), 0 0 20px var(--primary-green); }
+.feedback-popup.incorrect { background-color: rgba(139, 0, 0, 0.95); border: 2px solid #ff4d4d; color: #ff4d4d; box-shadow: 0 15px 25px rgba(0,0,0,0.8), 0 0 20px #8b0000; }
 
-.feedback-popup.show { bottom: 60px; opacity: 1; }
+.level-canvas { border: 2px solid var(--accent-lime-green); border-radius: 4px; display: block; margin: 0; box-shadow: 0 0 25px rgba(57, 255, 20, 0.15); image-rendering: pixelated; }
 
-.feedback-popup.correct {
-    background-color: rgba(0, 100, 0, 0.9);
-    border: 2px solid var(--accent-lime-green);
-    color: var(--accent-lime-green);
-    box-shadow: 0 0 20px var(--primary-green);
-}
-
-.feedback-popup.incorrect {
-    background-color: rgba(139, 0, 0, 0.9);
-    border: 2px solid #ff4d4d;
-    color: #ff4d4d;
-    box-shadow: 0 0 20px #8b0000;
-}
-
-/* --- Canvas voor Minigames --- */
-.level-canvas {
-    border: 2px solid var(--accent-lime-green);
-    border-radius: 4px;
-    display: block;
-    margin: 0;
-    box-shadow: 0 0 15px rgba(57, 255, 20, 0.2);
-    image-rendering: pixelated; /* Voor scherpere pixel-look */
-}
-
-/* --- Drag and Drop --- */
-.drop-zone {
-    border: 2px dashed rgba(57, 255, 20, 0.5);
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 15px;
-    min-height: 100px;
-    background-color: rgba(0,0,0,0.4);
-    transition: background-color 0.3s;
-}
-.draggable {
-    background-color: var(--primary-green);
-    border: 1px solid var(--accent-lime-green);
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    cursor: grab;
-    transition: transform 0.2s;
-}
-.draggable:active { transform: scale(0.95); cursor: grabbing; }
+/* Overige UI Elementen */
+.drop-zone { border: 2px dashed rgba(57, 255, 20, 0.5); border-radius: 8px; padding: 20px; margin-top: 15px; min-height: 100px; background-color: rgba(0,0,0,0.4); transition: background-color 0.3s; }
+.draggable { background-color: var(--primary-green); border: 1px solid var(--accent-lime-green); padding: 12px; margin-bottom: 10px; border-radius: 4px; cursor: grab; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+.draggable:active { transform: scale(0.95); cursor: grabbing; box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 .drop-zone.hover { background-color: rgba(57, 255, 20, 0.15); border-color: var(--accent-lime-green); }
-
-/* --- Highscore Lijst & Stats --- */
 #highscore-list { list-style-type: decimal; padding-left: 40px; }
 #highscore-list li { padding: 8px 0; font-size: 1.1em; color: var(--accent-lime-green); }
-
-#game-stats {
-    border: 1px solid rgba(57, 255, 20, 0.5);
-    background-color: rgba(0, 20, 0, 0.6);
-    border-radius: 4px;
-    padding: 20px;
-    margin-top: 25px;
-}
+#game-stats { border: 1px solid rgba(57, 255, 20, 0.5); background-color: rgba(0, 20, 0, 0.6); border-radius: 4px; padding: 20px; margin-top: 25px; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
 #game-stats h4 { margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 1px solid var(--accent-lime-green); color: var(--accent-lime-green); }
 #game-stats span { background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 4px; border: 1px solid rgba(57, 255, 20, 0.2); }
 #game-stats .stat-message { color: var(--accent-lime-green); margin-top: 15px; }
-
-/* Eindscherm Feedback */
 #feedback-container { margin-top: 30px; border-top: 2px dashed rgba(57, 255, 20, 0.3); padding-top: 20px; }
 .feedback-item { background-color: rgba(139, 0, 0, 0.15); border-left: 4px solid #ff4d4d; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
 .feedback-item strong { color: var(--accent-lime-green); }
 .feedback-item .explanation { color: #ff9999; border-top: 1px dashed rgba(255, 77, 77, 0.3); }
-/* --- EXTRA CSS VOOR DE NIEUWE MINIGAMES --- */
 
-/* Sliders voor Signaal Decryptie */
-.slider-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 10px 0;
-    width: 100%;
-}
-
-.slider-group label {
-    color: var(--accent-lime-green);
-    margin-bottom: 5px;
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-input[type=range] {
-    -webkit-appearance: none;
-    width: 80%;
-    background: transparent;
-}
-
-input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
-    background: var(--accent-lime-green);
-    cursor: pointer;
-    margin-top: -8px;
-    box-shadow: 0 0 10px var(--accent-lime-green);
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 4px;
-    cursor: pointer;
-    background: var(--primary-green);
-    border-radius: 2px;
-}
-
-/* Decryptie Progress Bar */
-.progress-bar-container {
-    width: 80%;
-    height: 15px;
-    background-color: rgba(0, 20, 0, 0.8);
-    border: 1px solid var(--accent-lime-green);
-    border-radius: 8px;
-    margin: 15px auto;
-    overflow: hidden;
-}
-
-#decrypt-progress {
-    width: 0%;
-    height: 100%;
-    background-color: var(--accent-lime-green);
-    box-shadow: 0 0 10px var(--accent-lime-green);
-    transition: width 0.1s linear;
-}
-
-/* Fix voor de layout van het canvas gebied */
-.game-area-wrapper {
-    display: flex;
-    flex-direction: column; /* Nu netjes onder elkaar */
-    align-items: center;
-    gap: 15px;
-    width: 100%;
-}
-
-#freq-controls {
-    width: 100%;
-    max-width: 500px;
-    background-color: rgba(0, 0, 0, 0.4);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px dashed var(--primary-green);
-}
-
-.instruction-text {
-    font-size: 0.9em;
-    color: #aaaaaa;
-    text-align: center;
-    margin-bottom: 10px;
-}
+/* Sliders Minigame */
+.slider-group { display: flex; flex-direction: column; align-items: center; margin: 10px 0; width: 100%; }
+.slider-group label { color: var(--accent-lime-green); margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+input[type=range] { -webkit-appearance: none; width: 80%; background: transparent; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--accent-lime-green); cursor: pointer; margin-top: -8px; box-shadow: 0 0 10px var(--accent-lime-green); }
+input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--primary-green); border-radius: 2px; }
+.progress-bar-container { width: 80%; height: 15px; background-color: rgba(0, 20, 0, 0.8); border: 1px solid var(--accent-lime-green); border-radius: 8px; margin: 15px auto; overflow: hidden; box-shadow: inset 0 0 5px #000; }
+#decrypt-progress { width: 0%; height: 100%; background-color: var(--accent-lime-green); box-shadow: 0 0 10px var(--accent-lime-green); transition: width 0.1s linear; }
+.game-area-wrapper { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; }
+#freq-controls { width: 100%; max-width: 600px; background-color: rgba(0, 0, 0, 0.4); padding: 15px; border-radius: 8px; border: 1px dashed var(--primary-green); }
+.instruction-text { font-size: 0.95em; color: #cccccc; text-align: center; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; border-left: 2px solid var(--primary-green); }
