@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         {
             title: "Trainingsmissie 3: Decibel Stealth", type: 'minigame_only', init: initDecibelSneak,
-            description: "Infiltreer de basis. Gebruik pijltjestoetsen. Jouw beweging produceert geluid (witte cirkel rondom jou). Beweeg langzaam of sta stil om geluid te dempen. Blijf met je geluid uit de buurt van de patrouillerende vijandelijke microfoons (rood). Loop ACHTER de muren om dekking te zoeken!"
+            description: "Infiltreer de basis. Gebruik pijltjestoetsen. Jouw beweging produceert geluid (witte cirkel). Sta stil om geluid te dempen. Muren isoleren het geluid: zorg dat er altijd een muur tussen jou en de vijandelijke microfoon (rood) staat!"
         },
         {
             title: "Missie 4: Geluidshinder Bestrijden",
@@ -521,6 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createStandaloneMinigameElement(levelData) {
         const container = document.createElement('div'); 
         container.className = 'question-container task-container';
+        
         container.innerHTML = `
             <p class="instruction-text">${levelData.description}</p>
             <div class="game-area-wrapper">
@@ -537,6 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="stat3" class="stat-message"></div>
                 </div>
             </div>`;
+            
         return container;
     }
 
@@ -777,30 +779,53 @@ document.addEventListener('DOMContentLoaded', () => {
         gameLoop();
     }
 
-    // 3. DECIBEL STEALTH (2.5D Z-SORTING)
+    // 3. DECIBEL STEALTH (GECORRIGEERD MET LINE-OF-SIGHT BEREKENING)
     function initDecibelSneak(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2');
         
-        let player = {x: 30, y: height/2, vx: 0, vy: 0, speed: 0.8, baseNoise: 15, currentNoise: 0, type: 'player'};
+        let player = {x: 30, y: height/2, vx: 0, vy: 0, speed: 0.8, baseNoise: 8, currentNoise: 0, type: 'player'};
         let exit = {x: width - 60, y: height/2 - 25, w: 50, h: 50};
         
+        // De "Slang" level lay-out
         let walls = [
-            {x: 120, y: 50, w: 40, h: 280, depth: 30, type: 'wall'},
-            {x: 280, y: 150, w: 40, h: 250, depth: 30, type: 'wall'},
-            {x: 440, y: 50, w: 40, h: 280, depth: 30, type: 'wall'}
+            {x: 100, y: 0, w: 40, h: 250, depth: 25, type: 'wall'},
+            {x: 250, y: 150, w: 40, h: 250, depth: 25, type: 'wall'},
+            {x: 400, y: 0, w: 40, h: 250, depth: 25, type: 'wall'}
         ];
 
+        // Bewakers patrouilleren in de gangen
         let guards = [
-            {x: 140, y: 350, range: 60, vx: 2, vy: 0, bounds: {minX: 80, maxX: 200}, type: 'guard'},
-            {x: 350, y: 50, range: 70, vx: 0, vy: 2, bounds: {minY: 50, maxY: 350}, type: 'guard'},
-            {x: 520, y: 350, range: 60, vx: 0, vy: -2, bounds: {minY: 50, maxY: 350}, type: 'guard'}
+            {x: 180, y: 50, range: 75, vx: 0, vy: 2, bounds: {minY: 50, maxY: 300}, type: 'guard'},
+            {x: 330, y: 350, range: 75, vx: 0, vy: -2, bounds: {minY: 100, maxY: 350}, type: 'guard'},
+            {x: 480, y: 50, range: 75, vx: 0, vy: 2, bounds: {minY: 50, maxY: 300}, type: 'guard'}
         ];
         
         let keys = {}; let gameEnded = false;
         window.activeGameListeners = [ {target: window, type: 'keydown', handler: e => keys[e.code] = true}, {target: window, type: 'keyup', handler: e => delete keys[e.code]} ];
         window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type,handler));
 
+        // Wiskundige helper: Bepaal of twee lijnen elkaar kruisen
+        function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+            let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+            let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+            return (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1);
+        }
+
+        // Check of het geluid geblokkeerd wordt door een van de 4 zijden van elke muur
+        function isSoundBlocked(px, py, gx, gy) {
+            for(let w of walls) {
+                if (lineIntersect(px, py, gx, gy, w.x, w.y, w.x+w.w, w.y) ||
+                    lineIntersect(px, py, gx, gy, w.x+w.w, w.y, w.x+w.w, w.y+w.h) ||
+                    lineIntersect(px, py, gx, gy, w.x+w.w, w.y+w.h, w.x, w.y+w.h) ||
+                    lineIntersect(px, py, gx, gy, w.x, w.y+w.h, w.x, w.y)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Bepaal of de speler tegen een muur loopt
         function isWall(nx, ny) {
             for(let w of walls) { if(nx+8 > w.x && nx-8 < w.x+w.w && ny+8 > w.y && ny-8 < w.y+w.h) return true; }
             return false;
@@ -818,12 +843,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if(player.x < 10) player.x = 10; if(player.x > width-10) player.x = width-10; if(player.y < 10) player.y = 10; if(player.y > height-10) player.y = height-10;
 
             let velocity = Math.hypot(player.vx, player.vy);
-            player.currentNoise = player.baseNoise + (velocity * 40);
+            player.currentNoise = player.baseNoise + (velocity * 30); // Radius past zich aan op snelheid
 
             ctx.fillStyle = '#0a0f0d'; ctx.fillRect(0, 0, width, height);
             draw2_5DBlock(ctx, exit.x, exit.y, exit.w, exit.h, 10, 'rgba(0,100,0,0.5)', 'rgba(57, 255, 20, 0.5)', 'var(--accent-lime-green)');
 
-            // Z-Depth Sorting
+            // Z-Depth Sorting (diepte toevoegen in 2.5D)
             let renderQueue = [];
             walls.forEach(w => renderQueue.push({ y: w.y + w.h, obj: w })); 
             guards.forEach(g => {
@@ -842,14 +867,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     draw2_5DBlock(ctx, o.x, o.y, o.w, o.h, o.depth, '#051105', '#1E3A1E', '#39FF14');
                 } 
                 else if (o.type === 'guard') {
-                    ctx.beginPath(); ctx.arc(o.x, o.y, o.range, 0, Math.PI*2); ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'; ctx.fill();
-                    ctx.strokeStyle = 'red'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+                    // Check of het geluid is afgeschermd door een muur
+                    let blocked = isSoundBlocked(player.x, player.y, o.x, o.y);
+                    let dist = Math.hypot(player.x - o.x, player.y - o.y);
+
+                    // De microfoon radius kleurt rood als hij je kan horen, anders blijft hij dof oranje
+                    if(blocked) {
+                         ctx.fillStyle = 'rgba(255, 100, 0, 0.05)';
+                         ctx.strokeStyle = 'rgba(255, 100, 0, 0.2)';
+                    } else {
+                         ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+                         ctx.strokeStyle = 'red';
+                    }
+
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.range, 0, Math.PI*2); ctx.fill();
+                    ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
                     
                     ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowOffsetY = 15; ctx.shadowBlur = 10;
                     ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(o.x, o.y, 8, 0, Math.PI*2); ctx.fill();
                     ctx.shadowColor = 'transparent';
 
-                    if (Math.hypot(player.x - o.x, player.y - o.y) < o.range + player.currentNoise) {
+                    // GAME OVER CONDITIE
+                    if (!blocked && dist < o.range + player.currentNoise) {
                         gameEnded = true; onComplete(0, "Gedetecteerd door microfoons!", "incorrect");
                     }
                 } 
@@ -864,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (player.x > exit.x && player.y > exit.y && player.y < exit.y+exit.h) { gameEnded = true; onComplete(200, "Stealth Infiltratie Geslaagd!", "correct"); }
 
-            stat1.textContent = `Jouw dB: ${Math.round(player.currentNoise)}`; stat2.textContent = 'Loop achter muren om niet op te vallen!';
+            stat1.textContent = `Jouw dB: ${Math.round(player.currentNoise)}`; stat2.textContent = 'Muren dempen jouw geluid!';
             activeGameLoopId = requestAnimationFrame(gameLoop);
         }
         gameLoop();
@@ -977,40 +1016,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- App Initialisatie --- //
     function initializeApp() {
         function proceedToGame() {
-            classSelectionScreen.style.display = 'none';
-            screens.intro.style.display = 'flex';
-            gameContainer.style.display = 'block';
-
-            agentNameInput.style.display = 'none';
-            startButton.style.display = 'none';
-            
-            let i=0; 
-            introTextElement.textContent=""; 
-            let typing = setInterval(()=>{ 
-                if(i<storyIntro.length){
-                    introTextElement.textContent+=storyIntro.charAt(i); 
-                    i++;
-                } else {
-                    clearInterval(typing); 
-                    agentNameInput.style.display='block'; 
-                    startButton.style.display='block';
-                }
-            }, 20);
+            classSelectionScreen.style.display = 'none'; screens.intro.style.display = 'flex'; gameContainer.style.display = 'block';
+            agentNameInput.style.display = 'none'; startButton.style.display = 'none';
+            let i=0; introTextElement.textContent=""; let typing = setInterval(()=>{ if(i<storyIntro.length){introTextElement.textContent+=storyIntro.charAt(i); i++;}else{clearInterval(typing); agentNameInput.style.display='block'; startButton.style.display='block';}}, 20);
         }
-        
-        vmboButton.addEventListener('click', () => { playerClass = 'VMBO'; proceedToGame(); });
-        ghaButton.addEventListener('click', () => { playerClass = 'GHA'; proceedToGame(); });
+        vmboButton.addEventListener('click', () => { playerClass = 'VMBO'; proceedToGame(); }); ghaButton.addEventListener('click', () => { playerClass = 'GHA'; proceedToGame(); });
         if (tlButton) tlButton.addEventListener('click', () => { playerClass = 'TL'; proceedToGame(); });
-
-        setTimeout(() => {
-            if (loaderScreen) loaderScreen.style.display = 'none';
-            if (classSelectionScreen) classSelectionScreen.style.display = 'flex';
-        }, 1000);
-
-        startButton.addEventListener('click', startGame);
-        nextButton.addEventListener('click', nextLevel);
-        restartButton.addEventListener('click', restartGame);
+        setTimeout(() => { if (loaderScreen) loaderScreen.style.display = 'none'; if (classSelectionScreen) classSelectionScreen.style.display = 'flex'; }, 1000);
+        startButton.addEventListener('click', startGame); nextButton.addEventListener('click', nextLevel); restartButton.addEventListener('click', restartGame);
     }
-
     initializeApp();
 });
