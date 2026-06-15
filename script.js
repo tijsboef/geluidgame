@@ -91,13 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
         { question: "Twee identieke snaren worden even strak gespannen. Snaar A is van staal (zwaarder), snaar B is van nylon (lichter). Welke snaar produceert waarschijnlijk een hogere toon?", options: ["Snaar A", "Snaar B", "Ze produceren dezelfde toon", "Geen van beide produceert een toon"], answer: "Snaar B" },
     ];
 
-    // Object met VMBO, GHA én TL varianten
+    // GECORRIGEERDE OBJECT MET VMBO, GHA én TL varianten
     const mission3_minigame = {
         GHA: [
             { title: "Analyse: Sterkte Inschatten", description: "500 van onze supporters produceren 75 dB. Een vijandelijke menigte produceert 93 dB.", question: "Hoeveel supporters van SILENT juichen er?", options: ["4.000", "16.000", "32.000", "64.000"], answer: "32.000", hint: "Het verschil is 93 - 75 = 18 dB. Elke +3 dB is een verdubbeling. Hoe vaak past 3 in 18? (6 keer). Je moet het aantal supporters dus 6 keer verdubbelen." },
             { title: "Analyse: Sterkte Inschatten", description: "Een SILENT-basis wordt beschermd door 10 jammers die samen 100 dB aan ruis produceren. Een nabijgelegen Dalton-buitenpost produceert 112 dB.", question: "Wat is het jammer-equivalent van onze buitenpost?", options: ["80", "160", "320", "1000"], answer: "160", hint: "Verschil = 12 dB. Dat zijn 4 verdubbelingen (12/3=4). Start met 10 en verdubbel 4 keer." },
             { title: "Analyse: Sterkte Inschatten", description: "Eén SILENT-spion produceert 20 dB aan data-ruis. Hun hoofdkwartier produceert 62 dB.", question: "Hoeveel spionnen zijn daar actief (afgerond)?", options: ["1024", "4096", "16384", "8192"], answer: "16384", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 1 veertien keer verdubbelen." },
-            { title: "Analyse: Sterkte Inschatten", description: "40 SILENT-drones produceren 80 dB aan geluid. Een opstijgend vrachtvliegtuig van de vijand produceert 122 dB.", question: "Wat is de geluidssterkte-equivalent in drones?", options: ["640.000", "40.000", "128.000", "1.280.000"], answer: "640.000", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 40 veertien keer verdubbelen." },
+            { title: "Analyse: Sterkte Inschatten", description: "40 SILENT-drones produceren 80 dB aan geluid. Een opstijgend vrachtvliegtuig van de vijand produceert 122 dB.", question: "Wat is de geluidssterkte-equivalent in drones?", options: ["655.360", "40.000", "128.000", "1.280.000"], answer: "655.360", hint: "Verschil = 42 dB. Dat zijn 14 verdubbelingen (42/3=14). Je moet 40 veertien keer verdubbelen (40 x 16384)." },
         ],
         VMBO: [
             { title: "Analyse: Meting controleren", description: "Een agent controleert of een scooter niet te veel lawaai maakt. Volgens de voorschriften moet de decibelmeter op 50 cm afstand van de knalpijp worden gehouden.", question: "De agent meet een te hoge waarde als de afstand groter / kleiner is dan 50 cm.", options: ["groter", "kleiner"], answer: "kleiner" },
@@ -154,11 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'theory_with_canvas',
             canvasPreamble: initAmplitudeComparison,
             questions: [mission3_q1, mission3_q2],
-            minigame: mission3_minigame // Object met VMBO, GHA én TL varianten
+            minigame: mission3_minigame
         },
         {
             title: "Trainingsmissie 3: Decibel Stealth", type: 'minigame_only', init: initDecibelSneak,
-            description: "Infiltreer de basis (gebruik pijltjestoetsen). Bewegen maakt geluid (witte cirkel). Hoe sneller je beweegt, hoe meer decibel je produceert. Voorkom dat jouw geluid de rode microfoons van de bewakers raakt. Ga naar de EXIT."
+            description: "Infiltreer de basis. Gebruik pijltjestoetsen. Jouw beweging produceert geluid (witte cirkel rondom jou). Beweeg langzaam of sta stil om geluid te dempen. Blijf met je geluid uit de buurt van de patrouillerende vijandelijke microfoons (rood)."
         },
         {
             title: "Missie 4: Geluidshinder Bestrijden",
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         {
             title: "Trainingsmissie 4: Geluidsbarrière Defensie", type: 'minigame_only', init: initNoiseDefense,
-            description: "De luidspreker (links) vuurt schadelijke geluidsgolven af op het hoofdkwartier (rechts). Bescherm het doelwit! KLIK en SLEEP met je muis over het veld om geluidsschermen te tekenen. Schermen kosten energie. Overleef 20 seconden."
+            description: "Vijandelijke drones (links) vuren schadelijke geluidsgolven af op het doelwit (rechts). KLIK en SLEEP in het veld om geluidsschermen te tekenen. Schermen houden geluid tegen maar slijten! Je budget herstelt langzaam. Overleef 20 seconden."
         }
     ];
     
@@ -221,10 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // 2. Laad theorie-minigame (berekeningen, drag & drop, etc.)
+        // 2. Laad theorie-minigame
         if (levelData.minigame) {
             let minigameGroup = levelData.minigame;
-            // Gedifferentieerde logica voor missie 3 (index 4)
+            // Gedifferentieerde logica voor missie 3
             if (currentLevelIndex === 4 && levelData.minigame[playerClass]) {
                  minigameGroup = levelData.minigame[playerClass];
             }
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             levelTasks++;
         }
 
-        // 3. Laad de grote canvas minigame (Trainingsmissies)
+        // 3. Laad de grote canvas minigame
         if (levelData.type === 'minigame_only') {
             const minigameEl = createStandaloneMinigameElement(levelData);
             levelContent.appendChild(minigameEl);
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <p class="instruction-text">${levelData.description}</p>
             <div class="game-area-wrapper">
                 <div id="canvas-container" style="position: relative; flex-shrink: 0;">
-                    <canvas id="minigame-canvas" class="level-canvas" width="600" height="400" style="max-width: 100%;"></canvas>
+                    <canvas id="minigame-canvas" class="level-canvas" width="600" height="400" style="max-width: 100%; touch-action: none;"></canvas>
                 </div>
                 <div id="freq-controls" style="text-align: center; width: 100%; max-width: 600px;"></div>
                 <div id="game-stats" style="width: 100%; max-width: 600px;">
@@ -929,14 +929,27 @@ document.addEventListener('DOMContentLoaded', () => {
         gameLoop();
     }
 
-    // 3. DECIBEL STEALTH (Sound Intensity Sneak)
+    // 3. DECIBEL STEALTH (GECORRIGEERD MET MUREN EN PATROUILLERENDE BEWAKERS)
     function initDecibelSneak(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2');
         
         let player = {x: 30, y: height/2, vx: 0, vy: 0, speed: 0.8, baseNoise: 15, currentNoise: 0};
         let exit = {x: width - 50, y: height/2 - 25, w: 50, h: 50};
-        let guards = [ {x: 200, y: 100, range: 120}, {x: 400, y: 300, range: 120}, {x: 300, y: 200, range: 150} ];
+        
+        // Fysieke muren toegevoegd om dekking te zoeken
+        let walls = [
+            {x: 100, y: 0, w: 40, h: 280},
+            {x: 250, y: 120, w: 40, h: 280},
+            {x: 400, y: 0, w: 40, h: 280}
+        ];
+
+        // Bewakers patrouilleren nu, en hebben een kleinere (eerlijke) range
+        let guards = [
+            {x: 120, y: 350, range: 60, vx: 2, vy: 0, bounds: {minX: 100, maxX: 200}},
+            {x: 320, y: 50, range: 70, vx: 0, vy: 2, bounds: {minY: 50, maxY: 350}},
+            {x: 480, y: 350, range: 60, vx: 0, vy: -2, bounds: {minY: 50, maxY: 350}}
+        ];
         
         let keys = {}; let gameEnded = false;
         window.activeGameListeners = [ 
@@ -945,14 +958,25 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
         window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type,handler));
 
+        function isWall(nx, ny) {
+            for(let w of walls) {
+                // Botsing met kleine marge voor de speler (radius 8)
+                if(nx+8 > w.x && nx-8 < w.x+w.w && ny+8 > w.y && ny-8 < w.y+w.h) return true;
+            }
+            return false;
+        }
+
         function gameLoop() {
             if (gameEnded) return;
             
-            player.vx *= 0.8; player.vy *= 0.8;
+            // Player Movement
+            player.vx *= 0.8; player.vy *= 0.8; // Frictie
             if (keys['ArrowUp']) player.vy -= player.speed; if (keys['ArrowDown']) player.vy += player.speed;
             if (keys['ArrowLeft']) player.vx -= player.speed; if (keys['ArrowRight']) player.vx += player.speed;
             
-            player.x += player.vx; player.y += player.vy;
+            if(!isWall(player.x + player.vx, player.y)) player.x += player.vx; else player.vx = 0;
+            if(!isWall(player.x, player.y + player.vy)) player.y += player.vy; else player.vy = 0;
+            
             if(player.x < 10) player.x = 10; if(player.x > width-10) player.x = width-10;
             if(player.y < 10) player.y = 10; if(player.y > height-10) player.y = height-10;
 
@@ -965,12 +989,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // Draw Exit
             ctx.fillStyle = '#39FF14'; ctx.fillRect(exit.x, exit.y, exit.w, exit.h);
 
+            // Draw Walls
+            ctx.fillStyle = '#1E3A1E';
+            ctx.strokeStyle = '#39FF14';
+            walls.forEach(w => {
+                ctx.fillRect(w.x, w.y, w.w, w.h);
+                ctx.strokeRect(w.x, w.y, w.w, w.h);
+            });
+
             // Draw Guards & Check Detection
             guards.forEach(g => {
+                // Update Guard Positie
+                g.x += g.vx; g.y += g.vy;
+                if(g.vx !== 0 && (g.x < g.bounds.minX || g.x > g.bounds.maxX)) g.vx *= -1;
+                if(g.vy !== 0 && (g.y < g.bounds.minY || g.y > g.bounds.maxY)) g.vy *= -1;
+
+                // Draw Range
                 ctx.beginPath(); ctx.arc(g.x, g.y, g.range, 0, Math.PI*2);
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'; ctx.fill();
                 ctx.strokeStyle = 'red'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
                 
+                // Draw Guard Center
                 ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(g.x, g.y, 8, 0, Math.PI*2); ctx.fill();
 
                 // Detectie: Als afstand tussen speler en guard kleiner is dan (guardRange + playerNoise)
@@ -986,32 +1025,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (player.x > exit.x && player.y > exit.y && player.y < exit.y+exit.h) { gameEnded = true; onComplete(200, "Stealth Infiltratie Geslaagd!", "correct"); }
 
-            stat1.textContent = `Jouw dB: ${Math.round(player.currentNoise)}`; stat2.textContent = 'Sta stil om stil te zijn!';
+            stat1.textContent = `Jouw dB: ${Math.round(player.currentNoise)}`; stat2.textContent = 'Sta stil om je dB te verlagen!';
             activeGameLoopId = requestAnimationFrame(gameLoop);
         }
         gameLoop();
     }
 
-    // 4. GELUIDSBARRIÈRE DEFENSIE (Tower Defense style)
+    // 4. GELUIDSBARRIÈRE DEFENSIE (DYNAMISCHE "TOWER DEFENSE")
     function initNoiseDefense(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2');
         
         let particles = []; let barriers = []; let isDrawing = false; let startX, startY;
-        let houseHealth = 100; let budget = 500; let frameCount = 0; let gameEnded = false;
+        let houseHealth = 100; let budget = 300; let frameCount = 0; let gameEnded = false;
 
-        const emitter = {x: 20, y: height/2}; const house = {x: width-80, y: height/2 - 40, w: 80, h: 80};
+        // Bewegende vijanden in plaats van 1 stilstaande emitter
+        let drones = [ {x: 30, y: 100, vy: 2}, {x: 30, y: 300, vy: -2.5}, {x: 30, y: 200, vy: 1.5} ];
+        const house = {x: width-80, y: height/2 - 50, w: 80, h: 100};
 
         // Muis logica voor tekenen muur
-        canvas.addEventListener('mousedown', e => { if(budget <= 0) return; const rect = canvas.getBoundingClientRect(); isDrawing = true; startX = e.clientX - rect.left; startY = e.clientY - rect.top; });
+        canvas.addEventListener('mousedown', e => { 
+            if(budget <= 0) return; 
+            const rect = canvas.getBoundingClientRect(); 
+            // Correctie voor schaling/styling van canvas
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            isDrawing = true; 
+            startX = (e.clientX - rect.left) * scaleX; 
+            startY = (e.clientY - rect.top) * scaleY; 
+        });
+        
         canvas.addEventListener('mouseup', e => {
             if(!isDrawing) return; isDrawing = false;
-            const rect = canvas.getBoundingClientRect(); let endX = e.clientX - rect.left; let endY = e.clientY - rect.top;
+            const rect = canvas.getBoundingClientRect(); 
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let endX = (e.clientX - rect.left) * scaleX; 
+            let endY = (e.clientY - rect.top) * scaleY;
+            
             let len = Math.hypot(endX-startX, endY-startY);
-            if (len > 10 && budget >= len) { barriers.push({x1: startX, y1: startY, x2: endX, y2: endY}); budget -= Math.round(len); }
+            // Muur krijgt HP gebaseerd op zijn lengte, maar kost ook budget
+            if (len > 10 && budget >= len) { 
+                barriers.push({x1: startX, y1: startY, x2: endX, y2: endY, hp: len * 1.5, maxHp: len * 1.5}); 
+                budget -= Math.round(len); 
+            }
         });
-        canvas.addEventListener('mousemove', e => { if(!isDrawing) return; });
-
+        
+        // Simpele wiskunde voor het berekenen van een lijn-cirkel (particle) intersectie
         function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
             let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
             let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
@@ -1021,21 +1081,42 @@ document.addEventListener('DOMContentLoaded', () => {
         function gameLoop() {
             if (gameEnded) return; frameCount++;
             
-            // Spawn sound waves
-            if(frameCount % 5 === 0) {
-                let angle = (Math.random() * Math.PI/2) - Math.PI/4; // Richting rechts
-                particles.push({ x: emitter.x, y: emitter.y, vx: Math.cos(angle)*4, vy: Math.sin(angle)*4, oldX: emitter.x, oldY: emitter.y });
-            }
+            // Budget regen
+            budget += 0.5;
+            if(budget > 500) budget = 500;
 
             ctx.fillStyle = '#0a0f0d'; ctx.fillRect(0, 0, width, height);
 
-            // Draw House & Emitter
+            // Draw House
             ctx.fillStyle = '#39FF14'; ctx.fillRect(house.x, house.y, house.w, house.h);
-            ctx.fillStyle = '#ff4d4d'; ctx.beginPath(); ctx.arc(emitter.x, emitter.y, 20, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'black'; ctx.font = '12px Arial'; ctx.fillText("DOELWIT", house.x + 10, house.y + house.h/2);
 
-            // Draw Barriers
-            ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-            barriers.forEach(b => { ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke(); });
+            // Update & Draw Drones
+            drones.forEach(d => {
+                d.y += d.vy;
+                if(d.y < 20 || d.y > height-20) d.vy *= -1;
+                
+                ctx.fillStyle = '#ff4d4d'; ctx.beginPath(); ctx.arc(d.x, d.y, 15, 0, Math.PI*2); ctx.fill();
+                
+                // Spawn sound waves randomly
+                if(Math.random() < 0.04) {
+                    let angle = (Math.random() * Math.PI/2) - Math.PI/4; // Richting rechts
+                    particles.push({ x: d.x+10, y: d.y, vx: Math.cos(angle)*6, vy: Math.sin(angle)*6, oldX: d.x+10, oldY: d.y });
+                }
+            });
+
+            // Draw Barriers (kleur verandert naarmate ze slijten)
+            ctx.lineWidth = 5; ctx.lineCap = 'round';
+            barriers.forEach(b => { 
+                // HP percentage (1.0 = full, 0.0 = broken)
+                let healthRatio = b.hp / b.maxHp;
+                // Groen naar Rood kleur verloop op basis van damage
+                let r = Math.floor(255 * (1 - healthRatio));
+                let g = Math.floor(255 * healthRatio);
+                ctx.strokeStyle = `rgb(${r}, ${g}, 0)`; 
+                
+                ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke(); 
+            });
 
             // Update Particles
             ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
@@ -1044,54 +1125,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Collision with barriers
                 let hitWall = false;
-                for(let b of barriers) { if(lineIntersect(p.oldX, p.oldY, p.x, p.y, b.x1, b.y1, b.x2, b.y2)) { hitWall = true; break; } }
+                for(let j = 0; j < barriers.length; j++) { 
+                    let b = barriers[j];
+                    if(lineIntersect(p.oldX, p.oldY, p.x, p.y, b.x1, b.y1, b.x2, b.y2)) { 
+                        hitWall = true; 
+                        b.hp -= 15; // Wall takes damage from sound
+                        break; 
+                    } 
+                }
+                
                 if (hitWall || p.x < 0 || p.y < 0 || p.y > height) { particles.splice(i, 1); continue; }
 
                 // Hit house?
                 if (p.x > house.x && p.x < house.x+house.w && p.y > house.y && p.y < house.y+house.h) { houseHealth -= 2; particles.splice(i, 1); continue; }
 
-                ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
             }
+
+            // Remove destroyed barriers
+            barriers = barriers.filter(b => b.hp > 0);
 
             if (houseHealth <= 0) { gameEnded = true; onComplete(0, "Huis verwoest door geluidsoverlast!", "incorrect"); }
             if (frameCount > 1200) { gameEnded = true; onComplete(300, "Wijk succesvol beschermd!", "correct"); } // 20 seconden (60fps)
 
-            stat1.textContent = `Huis Integriteit: ${Math.max(0, houseHealth)}%`; stat2.textContent = `Bouwbudget: €${budget}`;
+            stat1.textContent = `Huis Integriteit: ${Math.max(0, houseHealth)}%`; stat2.textContent = `Bouwbudget: €${Math.floor(budget)}`;
             activeGameLoopId = requestAnimationFrame(gameLoop);
         }
         gameLoop();
     }
 
-    // --- Event Listeners & Initialisatie --- //
     function initializeApp() {
         function proceedToGame() {
-            classSelectionScreen.style.display = 'none';
-            screens.intro.style.display = 'flex';
-            gameContainer.style.display = 'block';
-
-            agentNameInput.style.display = 'none';
-            startButton.style.display = 'none';
-            animateText(introTextElement, storyIntro, () => {
-                agentNameInput.style.display = 'block';
-                startButton.style.display = 'block';
-            });
+            classSelectionScreen.style.display = 'none'; screens.intro.style.display = 'flex'; gameContainer.style.display = 'block';
+            agentNameInput.style.display = 'none'; startButton.style.display = 'none';
+            let i=0; introTextElement.textContent=""; let typing = setInterval(()=>{ if(i<storyIntro.length){introTextElement.textContent+=storyIntro.charAt(i); i++;}else{clearInterval(typing); agentNameInput.style.display='block'; startButton.style.display='block';}}, 20);
         }
-        
-        vmboButton.addEventListener('click', () => { playerClass = 'VMBO'; proceedToGame(); });
-        ghaButton.addEventListener('click', () => { playerClass = 'GHA'; proceedToGame(); });
-        if (tlButton) {
-            tlButton.addEventListener('click', () => { playerClass = 'TL'; proceedToGame(); });
-        }
-
-        setTimeout(() => {
-            if (loaderScreen) loaderScreen.style.display = 'none';
-            if (classSelectionScreen) classSelectionScreen.style.display = 'flex';
-        }, 2500);
-
-        startButton.addEventListener('click', startGame);
-        nextButton.addEventListener('click', nextLevel);
-        restartButton.addEventListener('click', restartGame);
+        vmboButton.addEventListener('click', () => { playerClass = 'VMBO'; proceedToGame(); }); ghaButton.addEventListener('click', () => { playerClass = 'GHA'; proceedToGame(); });
+        if (tlButton) tlButton.addEventListener('click', () => { playerClass = 'TL'; proceedToGame(); });
+        setTimeout(() => { if (loaderScreen) loaderScreen.style.display = 'none'; if (classSelectionScreen) classSelectionScreen.style.display = 'flex'; }, 1000);
+        startButton.addEventListener('click', startGame); nextButton.addEventListener('click', nextLevel); restartButton.addEventListener('click', restartGame);
     }
-
     initializeApp();
 });
