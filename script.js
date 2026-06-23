@@ -135,7 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
             minigame: mission1_minigame
         },
         {
-           // title: "Trainingsmissie 1: Echolocatie Navigatie", type: 'minigame_only', init: initSonarGame,
+            title: "Trainingsmissie 1: Echolocatie Navigatie", 
+            type: 'minigame_only', 
+            init: initSonarGame,
             description: "Je vaart in absolute duisternis. Gebruik de pijltjestoetsen om te navigeren. Druk op SPATIE voor een sonar-ping om de muren (groen) en vijandelijke mijnen (rood) tijdelijk zichtbaar te maken. Bereik de EXIT.",
         },
         {
@@ -145,7 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
             minigame: mission2_minigame
         },
         {
-            title: "Trainingsmissie 2: Signaal Decryptie", type: 'minigame_only', init: initFrequencyMatchGame,
+            title: "Trainingsmissie 2: Signaal Decryptie", 
+            type: 'minigame_only', 
+            init: initFrequencyMatchGame,
             description: "Hack het vijandelijke signaal (ROOD) door jouw oscillator (GROEN) exact af te stemmen. Gebruik de sliders voor Frequentie en Amplitude. Hack 3 signalen om te winnen."
         },
         {
@@ -155,20 +159,28 @@ document.addEventListener('DOMContentLoaded', () => {
             questions: [mission3_q1, mission3_q2],
             minigame: mission3_minigame
         },
+        /* VOLLEDIG UITGESCHAKELD VOOR LIVE-VERSIE:
         {
-           // title: "Trainingsmissie 3: Decibel Stealth", type: 'minigame_only', init: initDecibelSneak,
+            title: "Trainingsmissie 3: Decibel Stealth", 
+            type: 'minigame_only', 
+            init: initDecibelSneak,
             description: "Infiltreer de basis. Gebruik pijltjestoetsen. Jouw beweging produceert geluid (witte cirkel). Sta stil om geluid te dempen. Muren isoleren het geluid: zorg dat er altijd een muur tussen jou en de vijandelijke microfoon (rood) staat!"
         },
+        */
         {
             title: "Missie 4: Geluidshinder Bestrijden",
             type: 'theory_and_minigame',
             questions: [mission4_q1],
             minigame: mission4_minigame
-        },
-        {
-           // title: "Trainingsmissie 4: Geluidsbarrière Defensie", type: 'minigame_only', init: initNoiseDefense,
+        }
+        /* VOLLEDIG UITGESCHAKELD VOOR LIVE-VERSIE:
+        ,{
+            title: "Trainingsmissie 4: Geluidsbarrière Defensie", 
+            type: 'minigame_only', 
+            init: initNoiseDefense,
             description: "Vijandelijke drones (links) vuren schadelijke geluidsgolven af op het doelwit (rechts). KLIK en SLEEP in het veld om geluidsschermen te tekenen. Schermen houden geluid tegen maar slijten! Je budget herstelt langzaam. Overleef 20 seconden."
         }
+        */
     ];
 
     // =========================================================================
@@ -620,6 +632,17 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let y = 0; y <= height; y += divSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
     }
 
+    // VOEG DEZE FUNCTIE TOE VOOR MISSIE 1:
+    function drawGlowRect(ctx, x, y, w, h, color, alpha=1) {
+        ctx.save();
+        ctx.shadowBlur = 18; ctx.shadowColor = color;
+        ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+        ctx.fillStyle = color; ctx.globalAlpha = alpha * 0.12;
+        ctx.fillRect(x, y, w, h);
+        ctx.restore();
+    }
+
    /* ═══════════════════════════════════════════
    GAME 1: ECHOLOCATIE NAVIGATIE (VISUELE UPGRADE)
 ═══════════════════════════════════════════ */
@@ -875,238 +898,321 @@ function initSonarGame(canvas, onComplete) {
         gameLoop();
     }
 
-    // 3. DECIBEL STEALTH (GECORRIGEERD MET LINE-OF-SIGHT BEREKENING)
+    // 3. DECIBEL STEALTH (UITGESCHAKELD, MAAR FUNCTIE AANWEZIG VOOR LATER)
     function initDecibelSneak(canvas, onComplete) {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2');
+        const dpad=document.getElementById('mobile-dpad');
+        if(dpad) dpad.style.display='grid';
+      
+        let player={x:30, y:height/2, vx:0, vy:0, speed:0.7};
+        const exit={x:width-65, y:height/2-30, w:48, h:52};
+      
+        const walls=[ {x:120,y:0,w:22,h:260}, {x:260,y:120,w:22,h:260}, {x:400,y:0,w:22,h:240} ];
         
-        let player = {x: 30, y: height/2, vx: 0, vy: 0, speed: 0.8, baseNoise: 8, currentNoise: 0, type: 'player'};
-        let exit = {x: width - 60, y: height/2 - 25, w: 50, h: 50};
-        
-        // De "Slang" level lay-out
-        let walls = [
-            {x: 100, y: 0, w: 40, h: 250, depth: 25, type: 'wall'},
-            {x: 250, y: 150, w: 40, h: 250, depth: 25, type: 'wall'},
-            {x: 400, y: 0, w: 40, h: 250, depth: 25, type: 'wall'}
+        let guards=[
+          {x:200, y:80,  r:12, vx:0, vy:1.8, minY:30,  maxY:220},
+          {x:335, y:280, r:12, vx:0, vy:-1.8,minY:140, maxY:370},
+          {x:470, y:80,  r:12, vx:0, vy:1.6, minY:30,  maxY:220},
         ];
-
-        // Bewakers patrouilleren in de gangen
-        let guards = [
-            {x: 180, y: 50, range: 75, vx: 0, vy: 2, bounds: {minY: 50, maxY: 300}, type: 'guard'},
-            {x: 330, y: 350, range: 75, vx: 0, vy: -2, bounds: {minY: 100, maxY: 350}, type: 'guard'},
-            {x: 480, y: 50, range: 75, vx: 0, vy: 2, bounds: {minY: 50, maxY: 300}, type: 'guard'}
-        ];
-        
-        let keys = {}; let gameEnded = false;
-        window.activeGameListeners = [ {target: window, type: 'keydown', handler: e => keys[e.code] = true}, {target: window, type: 'keyup', handler: e => delete keys[e.code]} ];
-        window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type,handler));
-
-        // Wiskundige helper: Bepaal of twee lijnen elkaar kruisen
-        function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
-            let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-            let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-            return (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1);
+      
+        let keys={}, gameEnded=false, detectedTimer=0;
+      
+        const kd=e=>keys[e.code]=true; const ku=e=>delete keys[e.code];
+        window.activeGameListeners=[{target:window,type:'keydown',handler:kd},{target:window,type:'keyup',handler:ku}];
+        window.activeGameListeners.forEach(({target,type,handler})=>target.addEventListener(type,handler));
+      
+        function segIntersect(ax,ay,bx,by,cx,cy,dx,dy){
+          const d1x=bx-ax,d1y=by-ay,d2x=dx-cx,d2y=dy-cy, cross=d1x*d2y-d1y*d2x;
+          if(Math.abs(cross)<1e-10) return false;
+          const t=((cx-ax)*d2y-(cy-ay)*d2x)/cross, u=((cx-ax)*d1y-(cy-ay)*d1x)/cross;
+          return t>=0&&t<=1&&u>=0&&u<=1;
         }
-
-        // Check of het geluid geblokkeerd wordt door een van de 4 zijden van elke muur
-        function isSoundBlocked(px, py, gx, gy) {
-            for(let w of walls) {
-                if (lineIntersect(px, py, gx, gy, w.x, w.y, w.x+w.w, w.y) ||
-                    lineIntersect(px, py, gx, gy, w.x+w.w, w.y, w.x+w.w, w.y+w.h) ||
-                    lineIntersect(px, py, gx, gy, w.x+w.w, w.y+w.h, w.x, w.y+w.h) ||
-                    lineIntersect(px, py, gx, gy, w.x, w.y+w.h, w.x, w.y)) {
-                    return true;
-                }
+      
+        function isSoundBlocked(px,py,gx,gy){
+          for(const w of walls){
+            const x1=w.x,y1=w.y,x2=w.x+w.w,y2=w.y+w.h;
+            if(segIntersect(px,py,gx,gy,x1,y1,x2,y1)||segIntersect(px,py,gx,gy,x2,y1,x2,y2)||
+               segIntersect(px,py,gx,gy,x2,y2,x1,y2)||segIntersect(px,py,gx,gy,x1,y2,x1,y1)) return true;
+          } return false;
+        }
+        function hitsWall(nx,ny){ for(const w of walls){ if(nx+10>w.x&&nx-10<w.x+w.w&&ny+10>w.y&&ny-10<w.y+w.h) return true; } return false; }
+      
+        function drawWall(w){
+          const depth=18;
+          ctx.fillStyle='#051105'; ctx.strokeStyle='rgba(57,255,20,0.7)'; ctx.lineWidth=1.5;
+          ctx.fillStyle='#0d2b0d'; ctx.beginPath(); ctx.moveTo(w.x,w.y); ctx.lineTo(w.x+w.w,w.y);
+          ctx.lineTo(w.x+w.w-depth,w.y-depth); ctx.lineTo(w.x-depth,w.y-depth); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle='#051105'; ctx.fillRect(w.x,w.y,w.w,w.h); ctx.strokeRect(w.x,w.y,w.w,w.h);
+          ctx.fillStyle='#071907'; ctx.beginPath(); ctx.moveTo(w.x+w.w,w.y); ctx.lineTo(w.x+w.w-depth,w.y-depth);
+          ctx.lineTo(w.x+w.w-depth,w.y+w.h-depth); ctx.lineTo(w.x+w.w,w.y+w.h); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.save(); ctx.shadowBlur=8; ctx.shadowColor='rgba(57,255,20,0.6)'; ctx.strokeStyle='rgba(57,255,20,0.8)'; ctx.lineWidth=1; ctx.strokeRect(w.x,w.y,w.w,w.h); ctx.restore();
+        }
+      
+        function drawCharacter(x, y, vy, color, isSpy) {
+            ctx.save();
+            ctx.translate(x, y);
+            if (vy > 0) ctx.rotate(Math.PI);
+            
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(0, 0, 11, 6, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#f0c090';
+            ctx.beginPath(); ctx.arc(0, -2, 5, 0, Math.PI*2); ctx.fill();
+            
+            if (isSpy) {
+                ctx.fillStyle = '#111';
+                ctx.beginPath(); ctx.arc(0, -2, 5.2, Math.PI, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#00f5ff'; 
+                ctx.fillRect(-3, -4, 2, 1.5); ctx.fillRect(1, -4, 2, 1.5);
+            } else {
+                ctx.fillStyle = '#222'; ctx.fillRect(-6, -6, 12, 4);
+                ctx.fillStyle = '#555'; ctx.fillRect(-4, -8, 8, 2);
+                ctx.fillStyle = '#222'; ctx.fillRect(6, -6, 3, 6);
+                ctx.fillStyle = '#ffffaa'; ctx.beginPath(); ctx.arc(7.5, -6, 2, 0, Math.PI*2); ctx.fill();
             }
-            return false;
+            ctx.restore();
         }
-
-        // Bepaal of de speler tegen een muur loopt
-        function isWall(nx, ny) {
-            for(let w of walls) { if(nx+8 > w.x && nx-8 < w.x+w.w && ny+8 > w.y && ny-8 < w.y+w.h) return true; }
-            return false;
-        }
-
-        function gameLoop() {
-            if (gameEnded) return;
+      
+        function loop(){
+          if(gameEnded) return;
+      
+          player.vx*=0.82; player.vy*=0.82;
+          if(keys['ArrowUp'])    player.vy-=player.speed;
+          if(keys['ArrowDown'])  player.vy+=player.speed;
+          if(keys['ArrowLeft'])  player.vx-=player.speed;
+          if(keys['ArrowRight']) player.vx+=player.speed;
+      
+          if(!hitsWall(player.x+player.vx,player.y)) player.x+=player.vx; else player.vx=0;
+          if(!hitsWall(player.x,player.y+player.vy)) player.y+=player.vy; else player.vy=0;
+          player.x=Math.max(10,Math.min(width-10,player.x)); player.y=Math.max(10,Math.min(height-10,player.y));
+      
+          const vel=Math.hypot(player.vx,player.vy);
+          const noiseR = vel > 0.15 ? 15 + vel * 35 : 0;
+      
+          ctx.fillStyle='#060a08'; ctx.fillRect(0,0,width,height);
+          ctx.strokeStyle='rgba(57,255,20,0.04)'; ctx.lineWidth=1;
+          for(let x=0;x<width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke();}
+          for(let y=0;y<height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke();}
+      
+          ctx.save(); ctx.shadowBlur=20; ctx.shadowColor='#39FF14'; drawGlowRect(ctx,exit.x,exit.y,exit.w,exit.h,'#39FF14',0.9);
+          ctx.font='18px sans-serif'; ctx.textAlign='center'; ctx.fillText('🚪',exit.x+exit.w/2,exit.y+exit.h/2+6); ctx.restore();
+      
+          walls.forEach(drawWall);
+      
+          let detected=false;
+          guards.forEach(g=>{
+            g.y+=g.vy; if(g.y<g.minY||g.y>g.maxY) g.vy*=-1;
             
-            player.vx *= 0.8; player.vy *= 0.8; 
-            if (keys['ArrowUp']) player.vy -= player.speed; if (keys['ArrowDown']) player.vy += player.speed;
-            if (keys['ArrowLeft']) player.vx -= player.speed; if (keys['ArrowRight']) player.vx += player.speed;
+            const blocked=isSoundBlocked(player.x,player.y,g.x,g.y);
+            const dist=Math.hypot(player.x-g.x,player.y-g.y);
+            const heard=!blocked && dist < (g.r + noiseR);
+      
+            drawCharacter(g.x, g.y, g.vy, heard ? '#ff0000' : '#aa2222', false);
             
-            if(!isWall(player.x + player.vx, player.y)) player.x += player.vx; else player.vx = 0;
-            if(!isWall(player.x, player.y + player.vy)) player.y += player.vy; else player.vy = 0;
-            if(player.x < 10) player.x = 10; if(player.x > width-10) player.x = width-10; if(player.y < 10) player.y = 10; if(player.y > height-10) player.y = height-10;
-
-            let velocity = Math.hypot(player.vx, player.vy);
-            player.currentNoise = player.baseNoise + (velocity * 30); // Radius past zich aan op snelheid
-
-            ctx.fillStyle = '#0a0f0d'; ctx.fillRect(0, 0, width, height);
-            draw2_5DBlock(ctx, exit.x, exit.y, exit.w, exit.h, 10, 'rgba(0,100,0,0.5)', 'rgba(57, 255, 20, 0.5)', 'var(--accent-lime-green)');
-
-            // Z-Depth Sorting (diepte toevoegen in 2.5D)
-            let renderQueue = [];
-            walls.forEach(w => renderQueue.push({ y: w.y + w.h, obj: w })); 
-            guards.forEach(g => {
-                g.x += g.vx; g.y += g.vy;
-                if(g.vx !== 0 && (g.x < g.bounds.minX || g.x > g.bounds.maxX)) g.vx *= -1;
-                if(g.vy !== 0 && (g.y < g.bounds.minY || g.y > g.bounds.maxY)) g.vy *= -1;
-                renderQueue.push({ y: g.y, obj: g });
-            });
-            renderQueue.push({ y: player.y, obj: player });
-
-            renderQueue.sort((a, b) => a.y - b.y);
-
-            renderQueue.forEach(item => {
-                let o = item.obj;
-                if (o.type === 'wall') {
-                    draw2_5DBlock(ctx, o.x, o.y, o.w, o.h, o.depth, '#051105', '#1E3A1E', '#39FF14');
-                } 
-                else if (o.type === 'guard') {
-                    // Check of het geluid is afgeschermd door een muur
-                    let blocked = isSoundBlocked(player.x, player.y, o.x, o.y);
-                    let dist = Math.hypot(player.x - o.x, player.y - o.y);
-
-                    // De microfoon radius kleurt rood als hij je kan horen, anders blijft hij dof oranje
-                    if(blocked) {
-                         ctx.fillStyle = 'rgba(255, 100, 0, 0.05)';
-                         ctx.strokeStyle = 'rgba(255, 100, 0, 0.2)';
-                    } else {
-                         ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
-                         ctx.strokeStyle = 'red';
-                    }
-
-                    ctx.beginPath(); ctx.arc(o.x, o.y, o.range, 0, Math.PI*2); ctx.fill();
-                    ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
-                    
-                    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowOffsetY = 15; ctx.shadowBlur = 10;
-                    ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(o.x, o.y, 8, 0, Math.PI*2); ctx.fill();
-                    ctx.shadowColor = 'transparent';
-
-                    // GAME OVER CONDITIE
-                    if (!blocked && dist < o.range + player.currentNoise) {
-                        gameEnded = true; onComplete(0, "Gedetecteerd door microfoons!", "incorrect");
-                    }
-                } 
-                else if (o.type === 'player') {
-                    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowOffsetY = 15; ctx.shadowBlur = 10;
-                    ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(o.x, o.y, 8, 0, Math.PI*2); ctx.fill();
-                    ctx.shadowColor = 'transparent';
-                    
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.beginPath(); ctx.arc(o.x, o.y, o.currentNoise, 0, Math.PI*2); ctx.stroke();
-                }
-            });
-
-            if (player.x > exit.x && player.y > exit.y && player.y < exit.y+exit.h) { gameEnded = true; onComplete(200, "Stealth Infiltratie Geslaagd!", "correct"); }
-
-            stat1.textContent = `Jouw dB: ${Math.round(player.currentNoise)}`; stat2.textContent = 'Muren dempen jouw geluid!';
-            activeGameLoopId = requestAnimationFrame(gameLoop);
+            if(heard) {
+              detected=true;
+              ctx.fillStyle = '#ff3030'; ctx.font = 'bold 16px sans-serif';
+              ctx.fillText('!', g.x - 4, g.y - 12);
+            }
+          });
+      
+          if(detected){
+            detectedTimer++; ctx.fillStyle=`rgba(255,0,0,${Math.min(0.3,detectedTimer*0.04)})`; ctx.fillRect(0,0,width,height);
+            if(detectedTimer>60){ gameEnded=true; onComplete(0,'Gehoord door de bewakers!','incorrect'); return; }
+          } else detectedTimer=Math.max(0,detectedTimer-3);
+      
+          if (noiseR > 0) {
+            const gradient=ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,noiseR);
+            gradient.addColorStop(0,'rgba(255,255,255,0.12)'); gradient.addColorStop(1,'rgba(255,255,255,0)');
+            ctx.fillStyle=gradient; ctx.beginPath(); ctx.arc(player.x,player.y,noiseR,0,Math.PI*2); ctx.fill();
+            ctx.strokeStyle=`rgba(255,255,255,${0.3+vel*0.1})`; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(player.x,player.y,noiseR,0,Math.PI*2); ctx.stroke();
+          }
+      
+          drawCharacter(player.x, player.y, player.vy, '#334455', true);
+      
+          if(player.x>exit.x&&player.x<exit.x+exit.w&&player.y>exit.y&&player.y<exit.y+exit.h){ gameEnded=true; onComplete(200,'Stealth Infiltratie Geslaagd!','correct'); return; }
+      
+          const dB= noiseR > 0 ? Math.round(40+vel*30) : 0;
+          stat1.textContent=`Geluid: ${dB > 0 ? '~' + dB + ' dB' : 'Stil (0 dB)'}`; 
+          stat2.textContent= detected ? `⚠ ALARM — stop met bewegen of zoek dekking!` : `Onopgemerkt`;
+          activeGameLoopId=requestAnimationFrame(loop);
         }
-        gameLoop();
+        loop();
     }
 
-    // 4. GELUIDSBARRIÈRE DEFENSIE
+    // 4. GELUIDSBARRIÈRE DEFENSIE (UITGESCHAKELD, MAAR FUNCTIE AANWEZIG VOOR LATER)
     function initNoiseDefense(canvas, onComplete) {
-        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
-        const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2');
-        
-        let particles = []; let barriers = []; let isDrawing = false; let startX, startY;
-        let houseHealth = 100; let budget = 300; let frameCount = 0; let gameEnded = false;
-
-        let drones = [ {x: 30, y: 100, vy: 2}, {x: 30, y: 300, vy: -2.5}, {x: 30, y: 200, vy: 1.5} ];
-        const house = {x: width-80, y: height/2 - 50, w: 80, h: 100};
-
-        canvas.addEventListener('mousedown', e => { 
-            if(budget <= 0) return; 
-            const rect = canvas.getBoundingClientRect(); 
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            isDrawing = true; 
-            startX = (e.clientX - rect.left) * scaleX; 
-            startY = (e.clientY - rect.top) * scaleY; 
-        });
-        
-        canvas.addEventListener('mouseup', e => {
-            if(!isDrawing) return; isDrawing = false;
-            const rect = canvas.getBoundingClientRect(); 
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            let endX = (e.clientX - rect.left) * scaleX; 
-            let endY = (e.clientY - rect.top) * scaleY;
-            
-            let len = Math.hypot(endX-startX, endY-startY);
-            if (len > 10 && budget >= len) { 
-                barriers.push({x1: startX, y1: startY, x2: endX, y2: endY, hp: len * 1.5, maxHp: len * 1.5}); 
-                budget -= Math.round(len); 
-            }
-        });
-        
-        function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
-            let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-            let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-            return (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1);
+        const ctx=canvas.getContext('2d'), W=canvas.width, H=canvas.height;
+        const stat1=document.getElementById('stat1'), stat2=document.getElementById('stat2');
+      
+        const canvasContainer=document.getElementById('canvas-container');
+        if(!document.querySelector('.defense-toolbar')) {
+            const toolbar=document.createElement('div');
+            toolbar.className='defense-toolbar';
+            toolbar.innerHTML=`<span style="color:rgba(57,255,20,0.6);font-size:0.6rem;letter-spacing:2px">GEREEDSCHAP:</span>
+              <button class="tool-btn active" data-tool="wall">🧱 Betonmuur</button>
+              <button class="tool-btn" data-tool="foam">🟫 Schuimplaat</button>
+              <button class="tool-btn" data-tool="earth">🌿 Aarden wal</button>`;
+            canvasContainer.parentNode.insertBefore(toolbar, canvasContainer.nextSibling);
+            const timerOuter=document.createElement('div'); timerOuter.className='timer-bar-outer';
+            const timerInner=document.createElement('div'); timerInner.id='def-timer'; timerInner.className='timer-bar-inner'; timerInner.style.width='100%';
+            timerOuter.appendChild(timerInner);
+            toolbar.parentNode.insertBefore(timerOuter, toolbar.nextSibling);
         }
-
-        function gameLoop() {
-            if (gameEnded) return; frameCount++;
-            
-            budget += 0.5;
-            if(budget > 500) budget = 500;
-
-            ctx.fillStyle = '#0a0f0d'; ctx.fillRect(0, 0, width, height);
-
-            ctx.fillStyle = '#39FF14'; ctx.fillRect(house.x, house.y, house.w, house.h);
-            ctx.fillStyle = 'black'; ctx.font = '12px Arial'; ctx.fillText("DOELWIT", house.x + 10, house.y + house.h/2);
-
-            drones.forEach(d => {
-                d.y += d.vy;
-                if(d.y < 20 || d.y > height-20) d.vy *= -1;
-                
-                ctx.fillStyle = '#ff4d4d'; ctx.beginPath(); ctx.arc(d.x, d.y, 15, 0, Math.PI*2); ctx.fill();
-                
-                if(Math.random() < 0.04) {
-                    let angle = (Math.random() * Math.PI/2) - Math.PI/4;
-                    particles.push({ x: d.x+10, y: d.y, vx: Math.cos(angle)*6, vy: Math.sin(angle)*6, oldX: d.x+10, oldY: d.y });
-                }
-            });
-
-            ctx.lineWidth = 5; ctx.lineCap = 'round';
-            barriers.forEach(b => { 
-                let healthRatio = b.hp / b.maxHp;
-                let r = Math.floor(255 * (1 - healthRatio));
-                let g = Math.floor(255 * healthRatio);
-                ctx.strokeStyle = `rgb(${r}, ${g}, 0)`; 
-                ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke(); 
-            });
-
-            ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
-            for(let i = particles.length-1; i >= 0; i--) {
-                let p = particles[i]; p.oldX = p.x; p.oldY = p.y; p.x += p.vx; p.y += p.vy;
-                
-                let hitWall = false;
-                for(let j = 0; j < barriers.length; j++) { 
-                    let b = barriers[j];
-                    if(lineIntersect(p.oldX, p.oldY, p.x, p.y, b.x1, b.y1, b.x2, b.y2)) { 
-                        hitWall = true; b.hp -= 15; break; 
-                    } 
-                }
-                
-                if (hitWall || p.x < 0 || p.y < 0 || p.y > height) { particles.splice(i, 1); continue; }
-
-                if (p.x > house.x && p.x < house.x+house.w && p.y > house.y && p.y < house.y+house.h) { houseHealth -= 2; particles.splice(i, 1); continue; }
-
-                ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
-            }
-
-            barriers = barriers.filter(b => b.hp > 0);
-
-            if (houseHealth <= 0) { gameEnded = true; onComplete(0, "Huis verwoest door geluidsoverlast!", "incorrect"); }
-            if (frameCount > 1200) { gameEnded = true; onComplete(300, "Wijk succesvol beschermd!", "correct"); }
-
-            stat1.textContent = `Huis Integriteit: ${Math.max(0, houseHealth)}%`; stat2.textContent = `Bouwbudget: €${Math.floor(budget)}`;
-            activeGameLoopId = requestAnimationFrame(gameLoop);
+      
+        let selectedTool='wall';
+        document.querySelectorAll('.tool-btn').forEach(btn=>{
+          btn.addEventListener('click',()=>{
+            document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedTool=btn.dataset.tool;
+          });
+        });
+      
+        const TOOLS={ wall:{color:'#aaaaff', hpMult:1.2, width:6, cost:1.2}, foam:{color:'#c8a060', hpMult:0.7, width:10, cost:0.8}, earth:{color:'#6b9e4a', hpMult:2.0, width:14, cost:2.0} };
+        let particles=[], barriers=[], isDrawing=false, startX, startY, houseHealth=100, budget=300, frameCount=0, gameEnded=false;
+        const TOTAL_FRAMES=1800;
+      
+        const droneWaves=[
+          [{x:40,y:80},{x:40,y:200},{x:40,y:320}],
+          [{x:40,y:80},{x:40,y:140},{x:40,y:200},{x:40,y:260},{x:40,y:320}],
+          [{x:40,y:80},{x:40,y:140},{x:40,y:200},{x:40,y:260},{x:40,y:320},{x:40,y:H-80}],
+        ];
+        let drones=droneWaves[0].map(d=>({...d,vy:d.y<H/2?1.5:-1.5,hp:40,maxHp:40}));
+        const house={x:W-110,y:H/2-60,w:100,h:120};
+      
+        function getScale(){ const rect=canvas.getBoundingClientRect(); return {sx:canvas.width/rect.width, sy:canvas.height/rect.height, rect}; }
+      
+        const startDraw = (ex, ey) => { if(budget<=20) return; isDrawing=true; startX=ex; startY=ey; };
+        const endDraw = (ex, ey) => {
+          if(!isDrawing) return; isDrawing=false;
+          const len=Math.hypot(ex-startX,ey-startY), t=TOOLS[selectedTool], cost=len*t.cost*0.5;
+          if(len>15&&budget>=cost){ barriers.push({x1:startX,y1:startY,x2:ex,y2:ey,hp:len*t.hpMult*1.2,maxHp:len*t.hpMult*1.2,tool:selectedTool}); budget-=cost; }
+        };
+      
+        canvas.addEventListener('mousedown', e=>{ const s=getScale(); startDraw((e.clientX-s.rect.left)*s.sx, (e.clientY-s.rect.top)*s.sy); });
+        canvas.addEventListener('mouseup', e=>{ const s=getScale(); endDraw((e.clientX-s.rect.left)*s.sx, (e.clientY-s.rect.top)*s.sy); });
+        canvas.addEventListener('touchstart', e=>{ e.preventDefault(); const s=getScale(); startDraw((e.touches[0].clientX-s.rect.left)*s.sx, (e.touches[0].clientY-s.rect.top)*s.sy); },{passive:false});
+        canvas.addEventListener('touchend', e=>{ e.preventDefault(); const s=getScale(); endDraw((e.changedTouches[0].clientX-s.rect.left)*s.sx, (e.changedTouches[0].clientY-s.rect.top)*s.sy); },{passive:false});
+      
+        function segIntersect(ax,ay,bx,by,cx,cy,dx,dy){
+          const cross=(bx-ax)*(dy-cy)-(by-ay)*(dx-cx); if(Math.abs(cross)<1e-10) return false;
+          const t=((cx-ax)*(dy-cy)-(cy-ay)*(dx-cx))/cross, u=((cx-ax)*(by-ay)-(cy-ay)*(bx-ax))/cross; return t>=0&&t<=1&&u>=0&&u<=1;
         }
-        gameLoop();
+      
+        function drawHQ() {
+            ctx.save();
+            ctx.fillStyle = '#1a2a3a'; ctx.fillRect(house.x, house.y, house.w, house.h);
+            ctx.fillStyle = '#111'; ctx.fillRect(house.x - 5, house.y + house.h - 10, house.w + 10, 10);
+            ctx.fillStyle = '#0a1a2a';
+            ctx.beginPath(); ctx.moveTo(house.x - 10, house.y); ctx.lineTo(house.x + house.w/2, house.y - 30); ctx.lineTo(house.x + house.w + 10, house.y); ctx.fill();
+            const hRatio = houseHealth / 100;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    ctx.fillStyle = (Math.random() < hRatio) ? '#00f5ff' : '#222';
+                    ctx.fillRect(house.x + 15 + i*25, house.y + 20 + j*25, 15, 15);
+                }
+            }
+            if (hRatio < 0.5) {
+                ctx.fillStyle = `rgba(255, 0, 0, ${0.5 - hRatio})`;
+                ctx.fillRect(house.x, house.y, house.w, house.h);
+            }
+            ctx.translate(house.x + house.w/2, house.y - 30);
+            ctx.rotate(frameCount * 0.05);
+            ctx.strokeStyle = '#39FF14'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, -15); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, -15, 6, Math.PI, 0); ctx.stroke();
+            ctx.restore();
+        }
+      
+        function loop(){
+          if(gameEnded) return; frameCount++;
+      
+          if(frameCount===600)  drones=[...drones,...droneWaves[1].slice(3).map(d=>({...d,vy:d.y<H/2?1.8:-1.8,hp:50,maxHp:50}))];
+          if(frameCount===1200) drones=[...drones,...droneWaves[2].slice(5).map(d=>({...d,vy:d.y<H/2?2.2:-2.2,hp:60,maxHp:60}))];
+      
+          budget=Math.min(600, budget+0.7);
+          const timeRatio=1-(frameCount/TOTAL_FRAMES);
+          const ti = document.getElementById('def-timer');
+          if (ti) {
+              ti.style.width=`${timeRatio*100}%`;
+              ti.style.background=timeRatio>0.4 ? 'linear-gradient(90deg,#0a3305,#39FF14)' : timeRatio>0.2 ? 'linear-gradient(90deg,#4a3800,#ffb700)' : 'linear-gradient(90deg,#5a0000,#ff3030)';
+          }
+      
+          ctx.fillStyle='#060a08'; ctx.fillRect(0,0,W,H);
+          ctx.strokeStyle='rgba(57,255,20,0.05)'; ctx.lineWidth=1;
+          for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+          for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      
+          drawHQ();
+      
+          drones.forEach((d,di)=>{
+            d.y+=d.vy; if(d.y<30||d.y>H-30) d.vy*=-1;
+            ctx.save();
+            ctx.translate(d.x, d.y);
+            ctx.fillStyle='#222'; ctx.fillRect(-10, -5, 20, 10);
+            ctx.fillStyle='#ff3030'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle='#555'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(-10, -5); ctx.lineTo(-18, -12); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, -5); ctx.lineTo(18, -12); ctx.stroke();
+            let propSpin = Math.abs(Math.sin(frameCount * 0.5));
+            ctx.fillStyle='#aaa';
+            ctx.beginPath(); ctx.ellipse(-18, -14, 10 * propSpin, 2, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(18, -14, 10 * Math.abs(Math.cos(frameCount * 0.5)), 2, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(-15,-24,30,4);
+            ctx.fillStyle='#ff4d4d'; ctx.fillRect(-15,-24,(d.hp/d.maxHp)*30,4);
+            ctx.restore();
+      
+            if(Math.random()<0.045){
+              const angle=(Math.random()-0.5)*0.5;
+              particles.push({x:d.x+15, y:d.y, vx:Math.cos(angle)*7, vy:Math.sin(angle)*7, oldX:d.x+15, oldY:d.y, ttl:120, age:0, r:2});
+            }
+          });
+      
+          barriers.forEach(b=>{
+            const t=TOOLS[b.tool], ratio=b.hp/b.maxHp;
+            ctx.save(); ctx.lineCap='round'; ctx.lineWidth=t.width;
+            ctx.shadowBlur=ratio>0.5?12:4; ctx.shadowColor=t.color; ctx.strokeStyle=t.color; ctx.globalAlpha=0.3+ratio*0.7;
+            ctx.beginPath(); ctx.moveTo(b.x1,b.y1); ctx.lineTo(b.x2,b.y2); ctx.stroke();
+            ctx.lineWidth=2; ctx.globalAlpha=ratio; ctx.setLineDash([6,6]); ctx.stroke(); ctx.restore();
+          });
+      
+          ctx.lineWidth = 1.5;
+          for(let i=particles.length-1;i>=0;i--){
+            const p=particles[i];
+            p.oldX=p.x; p.oldY=p.y; p.x+=p.vx; p.y+=p.vy; p.age++; p.r+=0.2;
+      
+            let hit=false;
+            for(let j=0;j<barriers.length;j++){
+              const b=barriers[j];
+              if(segIntersect(p.oldX,p.oldY,p.x,p.y,b.x1,b.y1,b.x2,b.y2)){
+                b.hp-=(b.tool==='foam'?8:b.tool==='earth'?4:14); hit=true; break;
+              }
+            }
+      
+            if(hit||p.age>p.ttl||p.x<0||p.y<0||p.y>H){particles.splice(i,1); continue;}
+            if(p.x>house.x&&p.x<house.x+house.w&&p.y>house.y&&p.y<house.y+house.h){ houseHealth-=1.8; particles.splice(i,1); continue; }
+      
+            ctx.save();
+            ctx.strokeStyle=`rgba(255, 80, 80, ${1 - p.age/p.ttl})`;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, -Math.PI/3, Math.PI/3); ctx.stroke();
+            ctx.beginPath(); ctx.arc(p.x-4, p.y, p.r*0.6, -Math.PI/3, Math.PI/3); ctx.stroke();
+            ctx.restore();
+          }
+      
+          if(isDrawing){
+            const t=TOOLS[selectedTool];
+            ctx.save(); ctx.globalAlpha=0.5; ctx.setLineDash([8,8]); ctx.strokeStyle=t.color; ctx.lineWidth=t.width*0.6; ctx.lineCap='round';
+            ctx.beginPath(); ctx.moveTo(startX,startY); ctx.arc(startX,startY,5,0,Math.PI*2); ctx.stroke(); ctx.restore();
+          }
+      
+          barriers=barriers.filter(b=>b.hp>0);
+          if(houseHealth<=0){gameEnded=true; onComplete(0,'Doelwit vernietigd!','incorrect'); return;}
+          if(frameCount>=TOTAL_FRAMES){gameEnded=true; onComplete(350,'Hoofdkwartier beschermd! Operatie geslaagd!','correct'); return;}
+      
+          stat1.textContent=`Doelwit Integriteit: ${Math.max(0,Math.round(houseHealth))}%`;
+          stat2.textContent=`Budget: ${Math.floor(budget)} | Tijd: ${Math.ceil((TOTAL_FRAMES-frameCount)/60)}s`;
+          activeGameLoopId=requestAnimationFrame(loop);
+        }
+        loop();
     }
 
     // --- App Initialisatie --- //
