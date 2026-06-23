@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             minigame: mission1_minigame
         },
         {
-            title: "Trainingsmissie 1: Echolocatie Navigatie", type: 'minigame_only', init: initSonarGame,
+           // title: "Trainingsmissie 1: Echolocatie Navigatie", type: 'minigame_only', init: initSonarGame,
             description: "Je vaart in absolute duisternis. Gebruik de pijltjestoetsen om te navigeren. Druk op SPATIE voor een sonar-ping om de muren (groen) en vijandelijke mijnen (rood) tijdelijk zichtbaar te maken. Bereik de EXIT.",
         },
         {
