@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { title: "Analyse: Geluidsmaatregelen", type: 'drag_drop', question: "Sleep de eigenschappen naar de juiste maatregel.", categories: ['Geluidsscherm', 'Geluidswal'], items: [{ text: "Bestaat uit aarde, vaak begroeid", answer: 'Geluidswal' }, { text: "Kaatst geluid terug", answer: 'Geluidsscherm' }, { text: "Absorbeert geluid beter", answer: 'Geluidswal' }, { text: "Heeft meer bouwruimte nodig", answer: 'Geluidswal' }] },
         { title: "Analyse: Materialen", type: 'drag_drop', question: "Koppel het materiaal aan de juiste eigenschap.", categories: ['Absorptie', 'Reflectie'], items: [{ text: "Speciaal schuimrubber", answer: 'Absorptie' }, { text: "Beton", answer: 'Reflectie' }, { text: "Hout", answer: 'Reflectie' }, { text: "Dikke laag aarde en gras", answer: 'Absorptie' }] },
         { title: "Analyse: Toepassing", type: 'drag_drop', question: "Koppel de toepassing aan de juiste maatregel.", categories: ['Geluidsscherm', 'Geluidswal'], items: [{ text: "Langs een spoorlijn in de stad", answer: 'Geluidsscherm' }, { text: "Langs een snelweg met veel ruimte", answer: 'Geluidswal' }, { text: "Natuurlijke, groene uitstraling", answer: 'Geluidswal' }, { text: "Hoge geluidsisolatie op klein oppervlak", answer: 'Geluidsscherm' }] },
-        { title: "Analyse: Werkingsprincipe", type: 'drag_drop', question: "Koppel het werkingsprincipe aan de eigenschap.", categories: ['Absorptie', 'Reflectie'], items: [{ text: "Geluid wordt 'gevangen' en omgezet in warmte", answer: 'Absorptie' }, { text: "Geluid wordt een andere kant op gestuurd", answer: 'Reflectie' }, { text: "Creëert een 'geluidsschaduw'", answer: 'Reflectie' }, { text: "Werkt het beste met zachte, poreuze materialen", answer: 'Absorptie' }] },
+        { title: "Analyse: Werkingsprincipe", type: 'drag_drop', question: "Koppel het werkingsprincipe aan de eigenschap.", categories: ['Absorptie', 'Reflectie'], items: [{ text: "Geluid wordt 'gevangen' en omgezet in andere energie", answer: 'Absorptie' }, { text: "Geluid wordt een andere kant op gestuurd", answer: 'Reflectie' }, { text: "Creëert een 'geluidsschaduw'", answer: 'Reflectie' }, { text: "Werkt het beste met zachte, poreuze materialen", answer: 'Absorptie' }] },
     ];
     
     // --- Definitieve Level Structuur --- //
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             minigame: mission3_minigame
         },
         {
-            title: "Trainingsmissie 3: Decibel Stealth", type: 'minigame_only', init: initDecibelSneak,
+           // title: "Trainingsmissie 3: Decibel Stealth", type: 'minigame_only', init: initDecibelSneak,
             description: "Infiltreer de basis. Gebruik pijltjestoetsen. Jouw beweging produceert geluid (witte cirkel). Sta stil om geluid te dempen. Muren isoleren het geluid: zorg dat er altijd een muur tussen jou en de vijandelijke microfoon (rood) staat!"
         },
         {
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             minigame: mission4_minigame
         },
         {
-            title: "Trainingsmissie 4: Geluidsbarrière Defensie", type: 'minigame_only', init: initNoiseDefense,
+           // title: "Trainingsmissie 4: Geluidsbarrière Defensie", type: 'minigame_only', init: initNoiseDefense,
             description: "Vijandelijke drones (links) vuren schadelijke geluidsgolven af op het doelwit (rechts). KLIK en SLEEP in het veld om geluidsschermen te tekenen. Schermen houden geluid tegen maar slijten! Je budget herstelt langzaam. Overleef 20 seconden."
         }
     ];
