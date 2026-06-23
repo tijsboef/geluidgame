@@ -620,71 +620,167 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let y = 0; y <= height; y += divSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
     }
 
-    // 1. ECHOLOCATIE NAVIGATIE (2.5D Sonar)
-    function initSonarGame(canvas, onComplete) {
-        const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
-        const stat1 = document.getElementById('stat1'), stat2 = document.getElementById('stat2'), stat3 = document.getElementById('stat3');
-        let player = { x: 50, y: height - 50, radius: 10, vx: 0, vy: 0, speed: 0.5 };
-        let exit = { x: width - 60, y: 20, width: 40, height: 40 };
-        let pings = []; let keys = {}; let gameEnded = false; let score = 500;
-        
-        const walls = [ {x: 100, y: 0, w: 20, h: 300}, {x: 250, y: 100, w: 20, h: 300}, {x: 400, y: 0, w: 20, h: 250} ];
-        const mines = [ {x: 180, y: 150, r: 15}, {x: 330, y: 250, r: 15}, {x: 480, y: 100, r: 15} ];
+   /* ═══════════════════════════════════════════
+   GAME 1: ECHOLOCATIE NAVIGATIE (VISUELE UPGRADE)
+═══════════════════════════════════════════ */
+function initSonarGame(canvas, onComplete) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const stat1 = document.getElementById('stat1');
+  const stat2 = document.getElementById('stat2');
+  const stat3 = document.getElementById('stat3');
+  const dpad = document.getElementById('mobile-dpad');
+  if (dpad) dpad.style.display = 'grid';
+  const pingBtn = document.getElementById('dpad-ping');
 
-        const keydownHandler = (e) => { keys[e.code] = true; if (e.code === 'Space') e.preventDefault(); };
-        const keyupHandler = (e) => { if (e.code === 'Space') createPing(); delete keys[e.code]; };
-        window.activeGameListeners = [ {target: window, type: 'keydown', handler: keydownHandler}, {target: window, type: 'keyup', handler: keyupHandler} ];
-        window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type, handler));
+  const levelLayouts = [
+    { walls: [{x:110,y:0,w:20,h:260},{x:260,y:120,w:20,h:260},{x:410,y:0,w:20,h:220}],
+      mines: [{x:190,y:120,r:13},{x:330,y:260,r:13},{x:490,y:110,r:13}], exit: {x:540,y:30,w:38,h:38} },
+    { walls: [{x:100,y:H-240,w:20,h:240},{x:230,y:0,w:20,h:240},{x:360,y:H-280,w:20,h:280},{x:490,y:0,w:20,h:220}],
+      mines: [{x:165,y:H-140,r:13},{x:295,y:160,r:13},{x:425,y:H-140,r:13},{x:545,y:160,r:13}], exit: {x:540,y:H-80,w:38,h:38} },
+    { walls: [{x:120,y:60,w:20,h:H-60},{x:240,y:0,w:20,h:H-60},{x:360,y:60,w:20,h:H-60},{x:480,y:0,w:20,h:H-60}],
+      mines: [{x:180,y:180,r:13},{x:300,y:H-180,r:13},{x:420,y:180,r:13},{x:520,y:H-140,r:13},{x:300,y:90,r:13}], exit: {x:540,y:H/2-20,w:38,h:38} }
+  ];
 
-        function createPing() { if (pings.length < 2) { pings.push({ x: player.x, y: player.y, radius: 0, speed: 6, max: 250, alpha: 1 }); score -= 10; } }
+  let currentMissionLevel = 0, lives = 3, gameEnded = false, sonarScore = 600;
 
-        function isColliding(nx, ny) {
-            for(let w of walls) { if(nx+player.radius > w.x && nx-player.radius < w.x+w.w && ny+player.radius > w.y && ny-player.radius < w.y+w.h) return true; }
-            for(let m of mines) { if(Math.hypot(nx - m.x, ny - m.y) < player.radius + m.r) { onComplete(0, "Mijn geraakt!", "incorrect"); gameEnded = true; return true; } }
-            if(nx < 0 || nx > width || ny < 0 || ny > height) return true;
-            return false;
-        }
+  function loadMissionLevel(lvlIdx) {
+    const layout = levelLayouts[lvlIdx];
+    const walls = layout.walls, mines = layout.mines, exit = layout.exit;
+    let player = {x:30, y:H/2, vx:0, vy:0, speed:0.55};
+    let pings = [], keys = {};
 
-        function gameLoop() {
-            if (gameEnded) return;
-            
-            if (keys['ArrowUp']) player.vy -= player.speed; if (keys['ArrowDown']) player.vy += player.speed;
-            if (keys['ArrowLeft']) player.vx -= player.speed; if (keys['ArrowRight']) player.vx += player.speed;
-            player.vx *= 0.9; player.vy *= 0.9; 
-            
-            if(!isColliding(player.x + player.vx, player.y)) player.x += player.vx; else player.vx = 0;
-            if(!isColliding(player.x, player.y + player.vy)) player.y += player.vy; else player.vy = 0;
+    function createPing() { if (pings.length < 2) { pings.push({x:player.x, y:player.y, r:0, speed:5, maxR:270, alpha:1}); sonarScore -= 12; } }
 
-            if(player.x > exit.x && player.x < exit.x+exit.width && player.y > exit.y && player.y < exit.y+exit.height) { gameEnded = true; onComplete(Math.max(100, score), "Exit bereikt!", "correct"); }
+    const kd = e => { keys[e.code]=true; if(e.code==='Space'){e.preventDefault(); createPing();} };
+    const ku = e => { delete keys[e.code]; };
+    window.activeGameListeners = [{target:window,type:'keydown',handler:kd},{target:window,type:'keyup',handler:ku}];
+    window.activeGameListeners.forEach(({target,type,handler}) => target.addEventListener(type,handler));
 
-            ctx.fillStyle = '#020502'; ctx.fillRect(0, 0, width, height);
-            draw2_5DBlock(ctx, exit.x, exit.y, exit.width, exit.height, 10, 'rgba(0,100,0,0.5)', 'rgba(57, 255, 20, 0.5)', 'var(--accent-lime-green)');
-
-            for (let i = pings.length - 1; i >= 0; i--) {
-                let p = pings[i]; p.radius += p.speed; p.alpha = 1 - (p.radius / p.max);
-                if (p.alpha <= 0) { pings.splice(i, 1); continue; }
-                
-                ctx.save();
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.arc(p.x, p.y, Math.max(0, p.radius - 10), 0, Math.PI * 2, true); ctx.clip();
-
-                walls.forEach(w => draw2_5DBlock(ctx, w.x, w.y, w.w, w.h, 20, `rgba(5, 30, 5, ${p.alpha})`, `rgba(20, 60, 20, ${p.alpha})`, `rgba(57, 255, 20, ${p.alpha})`));
-                ctx.fillStyle = `rgba(255, 0, 0, ${p.alpha})`;
-                for(let m of mines) { ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI*2); ctx.fill(); }
-                ctx.restore();
-                
-                ctx.strokeStyle = `rgba(57, 255, 20, ${p.alpha * 0.5})`; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.stroke();
-            }
-
-            ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowOffsetY = 8; ctx.shadowBlur = 6;
-            ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2); ctx.fill();
-            ctx.shadowColor = 'transparent';
-
-            stat1.textContent = `Score: ${score}`; stat2.textContent = 'Doel: Zoek de Exit'; stat3.textContent = 'Druk op SPATIE voor Sonar Ping';
-            activeGameLoopId = requestAnimationFrame(gameLoop);
-        }
-        gameLoop();
+    if (dpad) {
+      ['up','down','left','right'].forEach(dir => {
+        const btn = document.getElementById(`dpad-${dir}`); if (!btn) return;
+        const downH = () => keys[`Arrow${dir.charAt(0).toUpperCase()+dir.slice(1)}`] = true;
+        const upH   = () => delete keys[`Arrow${dir.charAt(0).toUpperCase()+dir.slice(1)}`];
+        btn.addEventListener('pointerdown', downH); btn.addEventListener('pointerup', upH); btn.addEventListener('pointerleave', upH);
+        window.activeGameListeners.push({target:btn,type:'pointerdown',handler:downH}, {target:btn,type:'pointerup',handler:upH}, {target:btn,type:'pointerleave',handler:upH});
+      });
+      if (pingBtn) {
+        const ph = () => createPing(); pingBtn.addEventListener('pointerdown', ph);
+        window.activeGameListeners.push({target:pingBtn,type:'pointerdown',handler:ph});
+      }
     }
+
+    function collidesWall(nx, ny) {
+      for (const w of walls) { if (nx+12>w.x && nx-12<w.x+w.w && ny+8>w.y && ny-8<w.y+w.h) return true; }
+      return nx<12 || nx>W-12 || ny<8 || ny>H-8;
+    }
+
+    function step() {
+      if (gameEnded) return;
+      if (keys['ArrowUp'])    player.vy -= player.speed;
+      if (keys['ArrowDown'])  player.vy += player.speed;
+      if (keys['ArrowLeft'])  player.vx -= player.speed;
+      if (keys['ArrowRight']) player.vx += player.speed;
+      player.vx *= 0.88; player.vy *= 0.88;
+
+      if (!collidesWall(player.x+player.vx, player.y)) player.x += player.vx; else player.vx=0;
+      if (!collidesWall(player.x, player.y+player.vy)) player.y += player.vy; else player.vy=0;
+
+      for (const m of mines) {
+        if (Math.hypot(player.x-m.x, player.y-m.y) < 12+m.r) {
+          lives--;
+          if (lives <= 0) { gameEnded = true; onComplete(0,'Gedood door een mijn!','incorrect'); return; }
+          showFeedback(`Mijn geraakt! Nog ${lives} leven${lives===1?'':'s'}`, 'incorrect');
+          player.x = 30; player.y = H/2;
+        }
+      }
+
+      if (player.x>exit.x && player.x<exit.x+exit.w && player.y>exit.y && player.y<exit.y+exit.h) {
+        currentMissionLevel++;
+        if (currentMissionLevel >= levelLayouts.length) { gameEnded = true; onComplete(Math.max(150, sonarScore), 'Alle niveaus voltooid!', 'correct'); } 
+        else { showFeedback(`Niveau ${currentMissionLevel} bereikt!`, 'correct'); cleanupListeners(); setTimeout(() => loadMissionLevel(currentMissionLevel), 400); }
+        return;
+      }
+
+      ctx.fillStyle = '#060a08'; ctx.fillRect(0,0,W,H);
+      ctx.strokeStyle='rgba(57,255,20,0.05)'; ctx.lineWidth=1;
+      for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+      for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+      drawGlowRect(ctx, exit.x, exit.y, exit.w, exit.h, '#39FF14', 0.25);
+
+      for (let i = pings.length-1; i >= 0; i--) {
+        const p = pings[i];
+        p.r += p.speed; p.alpha = 1 - p.r/p.maxR;
+        if (p.alpha <= 0) { pings.splice(i,1); continue; }
+
+        ctx.save();
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.arc(p.x,p.y,Math.max(0,p.r-18),0,Math.PI*2,true); ctx.clip();
+        walls.forEach(w => {
+          ctx.save(); ctx.shadowBlur=12; ctx.shadowColor='rgba(57,255,20,0.8)';
+          ctx.fillStyle=`rgba(10,50,10,${p.alpha})`; ctx.fillRect(w.x,w.y,w.w,w.h);
+          ctx.strokeStyle=`rgba(57,255,20,${p.alpha})`; ctx.lineWidth=2; ctx.strokeRect(w.x,w.y,w.w,w.h); ctx.restore();
+        });
+        
+        // Teken "echte" stekelige zeemijnen binnen de sonar ping
+        mines.forEach(m => {
+          ctx.save();
+          ctx.shadowBlur=10; ctx.shadowColor=`rgba(255,48,48,${p.alpha})`;
+          ctx.fillStyle=`rgba(200,30,30,${p.alpha})`;
+          ctx.beginPath(); ctx.arc(m.x,m.y,m.r*0.8,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle=`rgba(255,100,100,${p.alpha})`; ctx.lineWidth = 2;
+          for(let j=0; j<8; j++){
+              let ang = (j/8)*Math.PI*2;
+              ctx.beginPath(); ctx.moveTo(m.x + Math.cos(ang)*m.r*0.5, m.y + Math.sin(ang)*m.r*0.5);
+              ctx.lineTo(m.x + Math.cos(ang)*m.r*1.2, m.y + Math.sin(ang)*m.r*1.2); ctx.stroke();
+          }
+          ctx.restore();
+        });
+        drawGlowRect(ctx, exit.x, exit.y, exit.w, exit.h, '#39FF14', p.alpha);
+        ctx.restore();
+
+        ctx.save(); ctx.strokeStyle=`rgba(57,255,20,${p.alpha*0.6})`; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.stroke(); ctx.restore();
+      }
+
+      // Teken de Onderzeeër (Speler)
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      // Roteer lichtjes gebaseerd op beweging
+      if (Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1) {
+          ctx.rotate(Math.atan2(player.vy, player.vx));
+      }
+      ctx.shadowBlur=15; ctx.shadowColor='#00f5ff';
+      ctx.fillStyle='#00aacc';
+      // Body
+      ctx.beginPath(); ctx.ellipse(0, 0, 14, 7, 0, 0, Math.PI*2); ctx.fill();
+      // Periscoop toren
+      ctx.fillStyle='#00f5ff';
+      ctx.fillRect(-2, -10, 6, 8);
+      // Staartpropeller
+      ctx.fillStyle='#007799';
+      ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(-18, -6); ctx.lineTo(-18, 6); ctx.fill();
+      // Oplichtend raampje
+      ctx.fillStyle='#ffffff';
+      ctx.beginPath(); ctx.arc(6, 0, 2, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      for (let i=0; i<3; i++) {
+        ctx.save(); ctx.shadowBlur=8; ctx.shadowColor= i<lives ? '#39FF14' : 'transparent';
+        ctx.fillStyle= i<lives ? '#39FF14' : '#0a3305'; ctx.beginPath(); ctx.arc(16+i*20, 16, 7, 0, Math.PI*2); ctx.fill(); ctx.restore();
+      }
+
+      ctx.save(); ctx.font='bold 11px Orbitron, monospace'; ctx.fillStyle='rgba(57,255,20,0.6)';
+      ctx.fillText(`NIVEAU ${currentMissionLevel+1}/${levelLayouts.length}`, W-110, 18); ctx.restore();
+
+      stat1.textContent = `Score: ${sonarScore}`; stat2.textContent = `Levens: ${lives}/3`; stat3.textContent = 'SPATIE / PING voor sonar-pulse → bereik EXIT';
+      activeGameLoopId = requestAnimationFrame(step);
+    }
+    step();
+  }
+  loadMissionLevel(0);
+}
 
     // THEORIE: Oscilloscoop tekenen
     function initOscilloscopeMinigame(canvas, options = {}) {
